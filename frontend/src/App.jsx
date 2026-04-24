@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth/AuthProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminLayout from "./components/AdminLayout";
+import Layout from "./components/Layout";
 import UserLayout from "./components/UserLayout";
 import AuthPage from "./pages/Auth";
 
@@ -17,6 +17,9 @@ import AdminReportsPage from "./pages/admin/Reports";
 import AdminSettingsPage from "./pages/admin/Settings";
 
 import UserDashboardPage from "./pages/user/Dashboard";
+import UserMachinesPage from "./pages/user/Machines";
+import UserPredictionsPage from "./pages/user/Predictions";
+import UserSettingsPage from "./pages/user/Settings";
 
 function HomeRedirect() {
   const { user, loading } = useAuth();
@@ -32,7 +35,7 @@ export default function App() {
       <Route path="/auth" element={<AuthPage />} />
 
       <Route element={<ProtectedRoute requireRole="admin" />}>
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/admin" element={<Layout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="users" element={<AdminUsersPage />} />
@@ -51,6 +54,9 @@ export default function App() {
         <Route path="/user" element={<UserLayout />}>
           <Route index element={<Navigate to="/user/dashboard" replace />} />
           <Route path="dashboard" element={<UserDashboardPage />} />
+          <Route path="machines" element={<UserMachinesPage />} />
+          <Route path="predictions" element={<UserPredictionsPage />} />
+          <Route path="settings" element={<UserSettingsPage />} />
         </Route>
       </Route>
 

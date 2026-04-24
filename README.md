@@ -56,18 +56,31 @@ Set in `frontend/.env`:
 
 - `VITE_API_BASE_URL=http://localhost:5000/api`
 
-## One Command Run (Windows PowerShell)
+## Run Separately (Recommended)
 
-From project root:
+Start each service in its own terminal:
+
+### ML API
 
 ```powershell
-.\run-all.ps1
+cd ml-api
+python app/main.py
 ```
 
-This starts:
-- ML API on `http://127.0.0.1:8000`
-- Backend on `http://localhost:5000`
-- Frontend on `http://localhost:5173`
+### Backend
+
+```powershell
+cd backend
+npm run dev
+```
+
+### Frontend
+
+```powershell
+cd frontend
+npm run clean
+npm run dev
+```
 
 ## Admin: Model Management
 
@@ -102,3 +115,16 @@ This starts:
 - Signup/Login includes role dropdown: `admin` or `user`.
 - `admin` can add machines, view system dashboard, and view all prediction logs.
 - `user` gets limited access: run predictions and view only own prediction history.
+
+## Live Dashboard (Admin + User)
+
+The dashboards now use aggregated overview APIs plus an SSE stream for live updates:
+
+- Admin:
+  - `GET /api/dashboard/admin/overview?days=7`
+  - `GET /api/dashboard/admin/stream?days=7` (Server-Sent Events)
+- User:
+  - `GET /api/dashboard/me/overview?days=7`
+  - `GET /api/dashboard/me/stream?days=7` (Server-Sent Events)
+
+Note: SSE uses `token` query param because browsers `EventSource` cannot set `Authorization` headers.

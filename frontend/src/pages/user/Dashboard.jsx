@@ -1,73 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
 import { backend } from "../../services/backend";
+import LineChart from "../../components/charts/LineChart";
+import DonutChart from "../../components/charts/DonutChart";
+import Sparkline from "../../components/charts/Sparkline";
 
-const initialSensors = {
-  temperature: 78,
-  vibration: 4.6,
-  pressure: 36,
-  humidity: 50,
-  rpm: 1850,
-  voltage: 228,
-  current: 15,
-  runtimeHours: 2200,
-  errorCount: 1,
-  maintenanceLagDays: 14
-};
+const DASH = "\u2014";
+const ELLIPSIS = "\u2026";
+const DOT = "\u00B7";
 
-const sensorFields = [
-  ["temperature", "Temperature (C)"],
-  ["vibration", "Vibration (mm/s)"],
-  ["pressure", "Pressure (bar)"],
-  ["humidity", "Humidity (%)"],
-  ["rpm", "RPM"],
-  ["voltage", "Voltage (V)"],
-  ["current", "Current (A)"],
-  ["runtimeHours", "Runtime Hours"],
-  ["errorCount", "Error Count"],
-  ["maintenanceLagDays", "Maintenance Lag (Days)"]
-];
+function probToPct(value) {
+  if (typeof value !== "number") return DASH;
+  return `${(value * 100).toFixed(0)}%`;
+}
+
+function trendIcon(trend) {
+  if (trend === "up") return "\u2191";
+  if (trend === "down") return "\u2193";
+  return "\u2192";
+}
 
 export default function UserDashboardPage() {
-  const [machines, setMachines] = useState([]);
-  const [selectedMachineId, setSelectedMachineId] = useState("");
-  const [sensors, setSensors] = useState(initialSensors);
-  const [latestPrediction, setLatestPrediction] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [live, setLive] = useState(false);
   const [error, setError] = useState("");
 
-  const riskBadgeClass = useMemo(() => {
-    if (!latestPrediction) return "";
-    return `risk-badge risk-${String(latestPrediction.riskLevel).toLowerCase()}`;
-  }, [latestPrediction]);
-
-  async function load() {
+  async function refresh() {
     setError("");
-    try {
-      const [mRes, hRes] = await Promise.all([
-        backend.listMachines(),
-        backend.listPredictions(25)
-      ]);
-      setMachines(mRes || []);
-      setHistory(hRes || []);
-    } catch (err) {
-      setError(err.response?.data?.message || err.message);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function predict(e) {
-    e.preventDefault();
     setLoading(true);
-    setError("");
     try {
-      const payload = { ...sensors, machineId: selectedMachineId || undefined };
-      const res = await backend.createPrediction(payload);
-      setLatestPrediction(res);
-      await load();
+      const next = await backend.getUserDashboardOverview({
+        days: 7,
+        alertLimit: 6,
+        topLimit: 6
+      });
+      setData(next);
     } catch (err) {
       setError(err.response?.data?.message || err.message);
     } finally {
@@ -75,122 +42,251 @@ export default function UserDashboardPage() {
     }
   }
 
+  useEffect(() => {
+    let alive = true;
+    refresh();
+
+    let es = null;
+    try {
+      es = backend.openUserDashboardStream({
+        days: 7,
+        alertLimit: 6,
+        topLimit: 6,
+        intervalMs: 2500,
+        onSnapshot: (snap) => {
+          if (!alive) return;
+          setData(snap);
+          setLive(true);
+        },
+        onError: () => {
+          if (!alive) return;
+          setLive(false);
+        }
+      });
+    } catch (_err) {
+      // stream not available
+    }
+
+    return () => {
+      alive = false;
+      es?.close();
+    };
+  }, []);
+
+  const lineSeries = useMemo(
+    () => [
+      { key: "Healthy", label: "Healthy", color: "#28d17c" },
+      { key: "Warning", label: "Warning", color: "#ffbf3a" },
+      { key: "Critical", label: "Critical", color: "#ff4a5b" }
+    ],
+    []
+  );
+
+  const cards = useMemo(() => {
+    const trend = Array.isArray(data?.trend) ? data.trend : [];
+    const h = trend.map((d) => d.Healthy);
+    const w = trend.map((d) => d.Warning);
+    const c = trend.map((d) => d.Critical);
+
+    return [
+      {
+        label: "Tracked Machines",
+        value: data?.cards?.trackedMachines ?? DASH,
+        spark: h.map((v, idx) => v + (w[idx] || 0) + (c[idx] || 0))
+      },
+      { label: "Healthy", value: data?.cards?.Healthy ?? 0, spark: h, tone: "ok" },
+      { label: "Warning", value: data?.cards?.Warning ?? 0, spark: w, tone: "warn" },
+      { label: "Critical", value: data?.cards?.Critical ?? 0, spark: c, tone: "danger" }
+    ];
+  }, [data]);
+
+  const donutSegments = useMemo(() => {
+    const dist = data?.distribution || {};
+    return [
+      { label: "Healthy", value: dist.Healthy || 0, color: "#28d17c" },
+      { label: "Warning", value: dist.Warning || 0, color: "#ffbf3a" },
+      { label: "Critical", value: dist.Critical || 0, color: "#ff4a5b" },
+      { label: "Unknown", value: dist.Unknown || 0, color: "rgba(235,241,255,0.28)" }
+    ].filter((s) => s.value > 0);
+  }, [data]);
+
   return (
-    <div className="user-page">
-      <div className="user-head">
-        <h1>User Dashboard</h1>
-        <button type="button" className="btn-secondary" onClick={load}>
-          Refresh
-        </button>
+    <div className="page dashboard-page">
+      <div className="page-head">
+        <div>
+          <div className="page-kicker">USER</div>
+          <h1>Dashboard</h1>
+          <p className="muted">
+            Live overview for your machines{" "}
+            <span className={["dash-live", live ? "is-live" : ""].filter(Boolean).join(" ")}>
+              {live ? "LIVE" : "OFFLINE"}
+            </span>
+          </p>
+        </div>
+        <div className="page-actions">
+          <button type="button" className="btn-secondary" onClick={refresh} disabled={loading}>
+            {loading ? "Loading..." : "Refresh"}
+          </button>
+        </div>
       </div>
 
       {error && <div className="banner banner-danger">{error}</div>}
 
-      <div className="two-col">
-        <section className="panel">
-          <div className="panel-head">
-            <div className="panel-title">Run Prediction</div>
-            <div className="panel-sub">Backend sends features to ML API and returns risk.</div>
-          </div>
-          <form onSubmit={predict} className="form-grid">
-            <label>
-              <span>Machine</span>
-              <select
-                value={selectedMachineId}
-                onChange={(e) => setSelectedMachineId(e.target.value)}
-              >
-                <option value="">No machine selected</option>
-                {machines.map((machine) => (
-                  <option key={machine._id} value={machine._id}>
-                    {machine.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {sensorFields.map(([field, label]) => (
-              <label key={field}>
-                <span>{label}</span>
-                <input
-                  type="number"
-                  step="any"
-                  value={sensors[field]}
-                  onChange={(e) =>
-                    setSensors((prev) => ({
-                      ...prev,
-                      [field]: e.target.value
-                    }))
-                  }
-                />
-              </label>
-            ))}
-
-            <div className="form-actions">
-              <button type="submit" disabled={loading}>
-                {loading ? "Predicting…" : "Predict Failure Risk"}
-              </button>
+      <section className="dashboard-kpis">
+        {cards.map((card) => (
+          <article
+            key={card.label}
+            className={["dash-kpi", `tone-${card.tone || "base"}`].join(" ")}
+          >
+            <div className="dash-kpi-top">
+              <div className="kpi-label">{card.label}</div>
+              <Sparkline
+                values={card.spark}
+                color={
+                  card.tone === "danger"
+                    ? "#ff4a5b"
+                    : card.tone === "warn"
+                      ? "#ffbf3a"
+                      : card.tone === "ok"
+                        ? "#28d17c"
+                        : "rgba(122, 53, 223, 0.95)"
+                }
+              />
             </div>
-          </form>
-        </section>
+            <div className="kpi-value">{loading && !data ? ELLIPSIS : card.value}</div>
+          </article>
+        ))}
+      </section>
 
-        <section className="panel">
+      <section className="dashboard-mid">
+        <div className="panel">
           <div className="panel-head">
-            <div className="panel-title">Latest Prediction</div>
-            <div className="panel-sub">Live result</div>
-          </div>
-          {latestPrediction ? (
-            <div className="prediction-result">
-              <p className={riskBadgeClass}>{latestPrediction.riskLevel} Risk</p>
-              <p>
-                Failure Probability:{" "}
-                <strong>
-                  {(latestPrediction.failureProbability * 100).toFixed(2)}%
-                </strong>
-              </p>
-              <p>{latestPrediction.recommendation}</p>
-              <small>Model: {latestPrediction.modelVersion}</small>
+            <div>
+              <div className="panel-title">Machine Health Overview</div>
+              <div className="panel-sub">Last 7 days prediction volume by status</div>
             </div>
-          ) : (
-            <p className="muted">No prediction generated yet.</p>
-          )}
-        </section>
-      </div>
-
-      <section className="panel">
-        <div className="panel-head">
-          <div className="panel-title">Prediction History</div>
-          <div className="panel-sub">Your recent predictions</div>
-        </div>
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Machine</th>
-                <th>Risk</th>
-                <th>Probability</th>
-                <th>Recommendation</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((row) => (
-                <tr key={row._id}>
-                  <td>{new Date(row.predictedAt).toLocaleString()}</td>
-                  <td>{row.machine?.name || "-"}</td>
-                  <td>{row.riskLevel}</td>
-                  <td>{(row.failureProbability * 100).toFixed(2)}%</td>
-                  <td className="cell-wrap">{row.recommendation}</td>
-                </tr>
+            <div className="dash-legend">
+              {lineSeries.map((s) => (
+                <div key={s.key} className="dash-legend-item">
+                  <span className="dash-legend-dot" style={{ background: s.color }} />
+                  <span>{s.label}</span>
+                </div>
               ))}
-              {history.length === 0 && (
+            </div>
+          </div>
+          <LineChart data={data?.trend || []} series={lineSeries} height={240} />
+        </div>
+
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <div className="panel-title">Risk Distribution</div>
+              <div className="panel-sub">Current machine status split</div>
+            </div>
+          </div>
+
+          <div className="dash-donut">
+            <DonutChart
+              segments={donutSegments}
+              centerLabel="Machines"
+              centerValue={data?.cards?.trackedMachines}
+            />
+            <div className="dash-donut-legend">
+              {[
+                { key: "Healthy", label: "Healthy", color: "#28d17c" },
+                { key: "Warning", label: "Warning", color: "#ffbf3a" },
+                { key: "Critical", label: "Critical", color: "#ff4a5b" },
+                { key: "Unknown", label: "Unknown", color: "rgba(235,241,255,0.28)" }
+              ].map((item) => (
+                <div key={item.key} className="dash-donut-row">
+                  <span className="dash-legend-dot" style={{ background: item.color }} />
+                  <span className="dash-donut-name">{item.label}</span>
+                  <span className="dash-donut-value">{data?.distribution?.[item.key] ?? 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="dashboard-bottom">
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <div className="panel-title">Recent Alerts</div>
+              <div className="panel-sub">Events triggered from your predictions</div>
+            </div>
+            <div className="panel-sub">{data?.now ? new Date(data.now).toLocaleString() : ""}</div>
+          </div>
+
+          <div className="dash-alerts">
+            {(data?.recentAlerts || []).map((a) => (
+              <div key={a._id} className="dash-alert">
+                <div className="dash-alert-left">
+                  <span className={`sev sev-${String(a.severity || "High").toLowerCase()}`}>
+                    {a.severity}
+                  </span>
+                  <div className="dash-alert-msg">
+                    <div className="dash-alert-title">{a.message || "Alert triggered"}</div>
+                    <div className="dash-alert-sub">
+                      {a.machine?.name ? a.machine.name : "Unknown machine"} {DOT}{" "}
+                      {a.triggeredAt ? new Date(a.triggeredAt).toLocaleString() : ""}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {(data?.recentAlerts || []).length === 0 && (
+              <div className="muted">No alerts yet.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="panel-head">
+            <div>
+              <div className="panel-title">Top At Risk Machines</div>
+              <div className="panel-sub">Based on your latest predictions</div>
+            </div>
+          </div>
+
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
                 <tr>
-                  <td colSpan={5} className="muted">
-                    No history yet.
-                  </td>
+                  <th>Machine</th>
+                  <th>Status</th>
+                  <th>Probability</th>
+                  <th>Trend</th>
+                  <th>Updated</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {(data?.topAtRisk || []).map((row) => (
+                  <tr key={row.machineId}>
+                    <td>{row.name || DASH}</td>
+                    <td>
+                      <span
+                        className={`status status-${String(row.status || "unknown").toLowerCase()}`}
+                      >
+                        {row.status || "Unknown"}
+                      </span>
+                    </td>
+                    <td>{probToPct(row.failureProbability)}</td>
+                    <td className="dash-trend">{trendIcon(row.trend)}</td>
+                    <td>{row.predictedAt ? new Date(row.predictedAt).toLocaleString() : DASH}</td>
+                  </tr>
+                ))}
+                {(data?.topAtRisk || []).length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="muted">
+                      No predictions yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </div>

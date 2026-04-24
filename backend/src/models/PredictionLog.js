@@ -25,6 +25,12 @@ const predictionLogSchema = new mongoose.Schema(
     riskLevel: { type: String, required: true },
     recommendation: { type: String, required: true },
     modelVersion: { type: String, default: "v1.0" },
+    etaHours: { type: Number },
+    etaRangeHours: { type: [Number], default: undefined },
+    etaText: { type: String },
+    etaRangeText: { type: String },
+    signals: { type: [String], default: undefined },
+    nextSteps: { type: [String], default: undefined },
     predictedAt: { type: Date, default: Date.now }
   },
   { timestamps: true }

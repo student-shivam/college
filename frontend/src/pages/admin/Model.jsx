@@ -102,7 +102,7 @@ export default function AdminModelPage() {
           <div className="page-kicker">ADMIN</div>
           <h1>Model Management</h1>
           <p className="muted">
-            Train and update the ML model via Node.js -> ML API. Status persists even if MongoDB is
+            Train and update the ML model via Node.js to ML API. Status persists even if MongoDB is
             unavailable.
           </p>
         </div>

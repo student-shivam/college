@@ -19,6 +19,7 @@ const { ensureDevAdmin } = require("./utils/seedAdmin");
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
 const app = express();
+const serverStartedAt = new Date().toISOString();
 
 const corsOrigin =
   process.env.NODE_ENV === "production" && process.env.FRONTEND_URL
@@ -36,6 +37,7 @@ app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
     service: "backend",
+    startedAt: serverStartedAt,
     mode: runtime.memoryMode ? "memory" : "mongo",
     dbReady: runtime.dbReady
   });

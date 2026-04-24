@@ -96,6 +96,177 @@ router.post(
   })
 );
 
+router.get(
+  "/me",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    res.json({ user: req.user });
+  })
+);
+
+router.patch(
+  "/me",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { name, preferences } = req.body || {};
+    if (!name && !preferences) {
+      return res.status(400).json({ message: "No fields provided to update" });
+    }
+
+    const updates = {};
+    if (name) {
+      const nextName = String(name).trim();
+      if (!nextName) return res.status(400).json({ message: "name cannot be empty" });
+      updates.name = nextName;
+    }
+
+    function normalizePreferences(input) {
+      if (!input || typeof input !== "object") return undefined;
+      const out = {};
+
+      if (input.defaultMachineId === null || input.defaultMachineId === "") {
+        out.defaultMachineId = null;
+      } else if (input.defaultMachineId !== undefined) {
+        out.defaultMachineId = String(input.defaultMachineId);
+      }
+
+      if (input.autoFillSensors !== undefined) {
+        out.autoFillSensors = Boolean(input.autoFillSensors);
+      }
+
+      if (input.sensorDefaults && typeof input.sensorDefaults === "object") {
+        const sd = input.sensorDefaults;
+        const allowed = ["temperature", "vibration", "humidity", "runtimeHours", "pressure"];
+        out.sensorDefaults = {};
+        for (const key of allowed) {
+          if (!Object.prototype.hasOwnProperty.call(sd, key)) continue;
+
+          if (sd[key] === "" || sd[key] === null) {
+            out.sensorDefaults[key] = null; // explicit clear
+            continue;
+          }
+
+          if (sd[key] === undefined) continue;
+
+          const value = Number(sd[key]);
+          if (!Number.isFinite(value)) {
+            return { error: `${key} must be a valid number` };
+          }
+          out.sensorDefaults[key] = value;
+        }
+      }
+
+      return { preferences: out };
+    }
+
+    const prefRes = normalizePreferences(preferences);
+    if (prefRes && prefRes.error) {
+      return res.status(400).json({ message: prefRes.error });
+    }
+
+    const useDb = runtime.dbReady && !runtime.memoryMode;
+    const now = new Date().toISOString();
+
+    if (!useDb) {
+      const index = runtime.users.findIndex((item) => item._id === String(req.user._id));
+      if (index === -1) return res.status(404).json({ message: "User not found" });
+      const existing = runtime.users[index];
+      const updated = { ...existing };
+      if (updates.name) updated.name = updates.name;
+      if (prefRes?.preferences) {
+        updated.preferences = { ...(existing.preferences || {}), ...prefRes.preferences };
+        if (updated.preferences.defaultMachineId === null) {
+          delete updated.preferences.defaultMachineId;
+        }
+        if (prefRes.preferences.sensorDefaults && typeof updated.preferences.sensorDefaults === "object") {
+          for (const [key, value] of Object.entries(prefRes.preferences.sensorDefaults)) {
+            if (value === null) {
+              delete updated.preferences.sensorDefaults[key];
+            }
+          }
+        }
+      }
+      updated.updatedAt = now;
+      runtime.users[index] = updated;
+      return res.json({
+        user: {
+          _id: updated._id,
+          name: updated.name,
+          email: updated.email,
+          role: updated.role,
+          preferences: updated.preferences || undefined
+        }
+      });
+    }
+
+    const updateDoc = {};
+    if (updates.name) updateDoc.name = updates.name;
+    if (prefRes?.preferences) {
+      if (prefRes.preferences.defaultMachineId === null) {
+        updateDoc["preferences.defaultMachineId"] = null;
+      } else if (prefRes.preferences.defaultMachineId !== undefined) {
+        updateDoc["preferences.defaultMachineId"] = prefRes.preferences.defaultMachineId;
+      }
+      if (prefRes.preferences.autoFillSensors !== undefined) {
+        updateDoc["preferences.autoFillSensors"] = prefRes.preferences.autoFillSensors;
+      }
+      if (prefRes.preferences.sensorDefaults) {
+        for (const [key, value] of Object.entries(prefRes.preferences.sensorDefaults)) {
+          if (value === null) {
+            updateDoc[`preferences.sensorDefaults.${key}`] = null;
+          } else {
+            updateDoc[`preferences.sensorDefaults.${key}`] = value;
+          }
+        }
+      }
+    }
+
+    updateDoc.updatedAt = now;
+
+    const user = await User.findByIdAndUpdate(req.user._id, updateDoc, { new: true }).select(
+      "-passwordHash"
+    );
+    return res.json({ user });
+  })
+);
+
+router.post(
+  "/me/password",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "currentPassword and newPassword are required" });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ message: "password must be at least 6 characters" });
+    }
+
+    const useDb = runtime.dbReady && !runtime.memoryMode;
+    const now = new Date().toISOString();
+
+    if (!useDb) {
+      const index = runtime.users.findIndex((item) => item._id === String(req.user._id));
+      if (index === -1) return res.status(404).json({ message: "User not found" });
+      const user = runtime.users[index];
+      const ok = await bcrypt.compare(String(currentPassword), user.passwordHash);
+      if (!ok) return res.status(401).json({ message: "Current password is incorrect" });
+      const passwordHash = await bcrypt.hash(String(newPassword), 10);
+      runtime.users[index] = { ...user, passwordHash, updatedAt: now };
+      return res.json({ ok: true });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const ok = await bcrypt.compare(String(currentPassword), user.passwordHash);
+    if (!ok) return res.status(401).json({ message: "Current password is incorrect" });
+    user.passwordHash = await bcrypt.hash(String(newPassword), 10);
+    user.updatedAt = now;
+    await user.save();
+    return res.json({ ok: true });
+  })
+);
+
 router.patch(
   "/:id",
   authenticate,
@@ -201,4 +372,3 @@ router.delete(
 );
 
 module.exports = router;
-

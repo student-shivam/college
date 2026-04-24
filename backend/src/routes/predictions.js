@@ -9,6 +9,7 @@ const AlertRule = require("../models/AlertRule");
 const AlertEvent = require("../models/AlertEvent");
 const asyncHandler = require("../utils/asyncHandler");
 const { authenticate } = require("../middleware/auth");
+const { buildPredictionDetails } = require("../utils/predictionDetails");
 const { runtime, newId } = require("../state/runtime");
 
 const router = express.Router();
@@ -109,6 +110,12 @@ router.post(
     prediction = localPredict(mlPayload);
   }
 
+  const details = buildPredictionDetails({
+    sensorData,
+    failureProbability: prediction.failure_probability,
+    riskLevel: prediction.risk_level
+  });
+
   const useDb = runtime.dbReady && !runtime.memoryMode;
   if (!useDb) {
     const now = new Date().toISOString();
@@ -133,6 +140,12 @@ router.post(
       riskLevel: prediction.risk_level,
       recommendation: prediction.recommendation,
       modelVersion: prediction.model_version,
+      etaHours: details.etaHours,
+      etaRangeHours: details.etaRangeHours,
+      etaText: details.etaText,
+      etaRangeText: details.etaRangeText,
+      signals: details.signals,
+      nextSteps: details.nextSteps,
       predictedAt: now,
       createdAt: now,
       updatedAt: now
@@ -173,7 +186,13 @@ router.post(
     failureProbability: prediction.failure_probability,
     riskLevel: prediction.risk_level,
     recommendation: prediction.recommendation,
-    modelVersion: prediction.model_version
+    modelVersion: prediction.model_version,
+    etaHours: details.etaHours,
+    etaRangeHours: details.etaRangeHours,
+    etaText: details.etaText,
+    etaRangeText: details.etaRangeText,
+    signals: details.signals,
+    nextSteps: details.nextSteps
   });
 
   // Generate alerts (best-effort: no impact to prediction API if alert creation fails).

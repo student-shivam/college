@@ -1,0 +1,21 @@
+{
+  "model_version": "fallback-20260422184659",
+  "trained_at": "2026-04-22T18:46:59.873672Z",
+  "features": [
+    "temperature",
+    "vibration",
+    "pressure",
+    "humidity",
+    "rpm",
+    "voltage",
+    "current",
+    "runtime_hours",
+    "error_count",
+    "maintenance_lag_days"
+  ],
+  "source": "fallback",
+  "accuracy": null,
+  "loss": null,
+  "samples": null,
+  "mode": "train"
+}

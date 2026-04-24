@@ -4,7 +4,10 @@ const { runtime } = require("../state/runtime");
 
 async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  // EventSource cannot set custom headers, so allow token via query string for GET requests.
+  const queryToken = req.method === "GET" ? String(req.query.token || "").trim() : "";
+  const token = headerToken || queryToken || null;
 
   if (!token) {
     return res.status(401).json({ message: "Authorization token missing" });
@@ -26,7 +29,8 @@ async function authenticate(req, res, next) {
           _id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          preferences: user.preferences || undefined
         };
       }
     } else {
