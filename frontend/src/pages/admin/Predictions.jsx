@@ -1,20 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
 import { backend } from "../../services/backend";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
+
+function normalizeRiskKey(riskLevel) {
+  const raw = String(riskLevel || "").trim().toLowerCase();
+  const compact = raw.replace(/\s+/g, "");
+  if (compact === "low" || compact === "normal" || compact === "healthy") return "low";
+  if (compact === "medium" || compact === "warning") return "medium";
+  if (compact === "high" || compact === "highrisk") return "high";
+  if (compact === "critical") return "critical";
+  return "";
+}
+
+function formatRiskLabel(riskLevel) {
+  const key = normalizeRiskKey(riskLevel);
+  if (key === "low") return "Normal";
+  if (key === "medium") return "Warning";
+  if (key === "high") return "High Risk";
+  if (key === "critical") return "Critical";
+  return String(riskLevel || "-") || "-";
+}
 
 export default function AdminPredictionsPage() {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [predictions, setPredictions] = useState([]);
   const [query, setQuery] = useState("");
 
   async function load() {
     setLoading(true);
-    setError("");
     try {
       const list = await backend.listPredictions(200);
       setPredictions(list || []);
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err), { dedupeKey: "admin-predictions-load" });
     } finally {
       setLoading(false);
     }
@@ -51,17 +70,15 @@ export default function AdminPredictionsPage() {
             onChange={(e) => setQuery(e.target.value)}
           />
           <button type="button" className="btn-secondary" onClick={load} disabled={loading}>
-            {loading ? "Loading…" : "Refresh"}
+            {loading ? "Loading..." : "Refresh"}
           </button>
         </div>
       </div>
 
-      {error && <div className="banner banner-danger">{error}</div>}
-
       <section className="panel">
         <div className="panel-head">
           <div className="panel-title">All Predictions</div>
-          <div className="panel-sub">{loading ? "Loading…" : `${filtered.length} records`}</div>
+          <div className="panel-sub">{loading ? "Loading..." : `${filtered.length} records`}</div>
         </div>
         <div className="table-wrap">
           <table className="table">
@@ -81,7 +98,17 @@ export default function AdminPredictionsPage() {
                   <td>{row.predictedAt ? new Date(row.predictedAt).toLocaleString() : "-"}</td>
                   <td>{row.machine?.name || "-"}</td>
                   <td>{row.createdBy?.email || row.createdBy?.name || "-"}</td>
-                  <td>{row.riskLevel}</td>
+                  <td>
+                    <span
+                      className={`risk-badge${
+                        normalizeRiskKey(row.riskLevel)
+                          ? ` risk-${normalizeRiskKey(row.riskLevel)}`
+                          : ""
+                      }`}
+                    >
+                      {formatRiskLabel(row.riskLevel)}
+                    </span>
+                  </td>
                   <td>
                     {typeof row.failureProbability === "number"
                       ? `${(row.failureProbability * 100).toFixed(2)}%`
@@ -104,4 +131,3 @@ export default function AdminPredictionsPage() {
     </div>
   );
 }
-

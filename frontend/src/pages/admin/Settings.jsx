@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { backend } from "../../services/backend";
 import { useAuth } from "../../auth/AuthProvider";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
 import {
   adminPrefEvents,
   getStoredTheme,
@@ -30,8 +32,6 @@ export default function AdminSettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [changingPwd, setChangingPwd] = useState(false);
-  const [error, setError] = useState("");
-  const [ok, setOk] = useState("");
 
   const [name, setName] = useState("");
 
@@ -50,8 +50,6 @@ export default function AdminSettingsPage() {
 
   async function load() {
     setLoading(true);
-    setError("");
-    setOk("");
     try {
       const me = await backend.getMe();
       const u = me?.user || me;
@@ -60,7 +58,7 @@ export default function AdminSettingsPage() {
       setTheme(getStoredTheme());
       setSidebarCollapsedDefault(isAdminSidebarCollapsedStored());
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err), { dedupeKey: "admin-settings-load" });
     } finally {
       setLoading(false);
     }
@@ -73,22 +71,20 @@ export default function AdminSettingsPage() {
   async function saveProfile(e) {
     e.preventDefault();
     setSavingProfile(true);
-    setError("");
-    setOk("");
 
     const nextName = String(name || "").trim();
     if (!nextName) {
       setSavingProfile(false);
-      setError("Name cannot be empty.");
+      toast.error("Name cannot be empty.");
       return;
     }
 
     try {
       await backend.updateMe({ name: nextName });
       await refreshProfile();
-      setOk("Profile updated.");
+      toast.success("Profile updated.");
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     } finally {
       setSavingProfile(false);
     }
@@ -97,22 +93,20 @@ export default function AdminSettingsPage() {
   async function changePassword(e) {
     e.preventDefault();
     setChangingPwd(true);
-    setError("");
-    setOk("");
 
     if (!currentPassword || !newPassword) {
       setChangingPwd(false);
-      setError("Current password and new password are required.");
+      toast.error("Current password and new password are required.");
       return;
     }
     if (String(newPassword).length < 6) {
       setChangingPwd(false);
-      setError("New password must be at least 6 characters.");
+      toast.error("New password must be at least 6 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
       setChangingPwd(false);
-      setError("New password and confirm password do not match.");
+      toast.error("New password and confirm password do not match.");
       return;
     }
 
@@ -121,9 +115,9 @@ export default function AdminSettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setOk("Password updated.");
+      toast.success("Password updated.");
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     } finally {
       setChangingPwd(false);
     }
@@ -132,16 +126,14 @@ export default function AdminSettingsPage() {
   function saveDashboardPrefs(e) {
     e.preventDefault();
     setSavingPrefs(true);
-    setError("");
-    setOk("");
 
     try {
       const normalized = saveAdminDashboardPrefs(dashPrefs);
       setDashPrefs(normalized);
       window.dispatchEvent(new Event(adminPrefEvents.dashboardChanged));
-      setOk("Admin preferences saved.");
+      toast.success("Admin preferences saved.");
     } catch (err) {
-      setError(err.message || "Failed to save preferences.");
+      toast.error(err?.message || "Failed to save preferences.");
     } finally {
       setSavingPrefs(false);
     }
@@ -161,9 +153,6 @@ export default function AdminSettingsPage() {
           </button>
         </div>
       </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
-      {ok && <div className="banner banner-success">{ok}</div>}
 
       <div className="settings-grid">
         <section className="panel">

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FiLogOut, FiMenu, FiMoon, FiSettings, FiSun } from "react-icons/fi";
+import { FiChevronDown, FiLogOut, FiMenu, FiMoon, FiSettings, FiSun } from "react-icons/fi";
 import { useAuth } from "../auth/AuthProvider";
+import { toServiceUrl } from "../utils/serviceRoot";
 
 function getInitials(name) {
   const parts = String(name || "")
@@ -13,7 +14,13 @@ function getInitials(name) {
   return (first + last).toUpperCase();
 }
 
-export default function Navbar({ theme, onToggleTheme, onToggleSidebar }) {
+export default function Navbar({
+  theme,
+  onToggleTheme,
+  onToggleSidebar,
+  settingsPath = "/admin/settings",
+  profilePath = "/admin/profile"
+}) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,6 +28,7 @@ export default function Navbar({ theme, onToggleTheme, onToggleSidebar }) {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const initials = useMemo(() => getInitials(user?.name), [user?.name]);
+  const avatarSrc = useMemo(() => toServiceUrl(user?.avatarUrl), [user?.avatarUrl]);
 
   useEffect(() => {
     setProfileOpen(false);
@@ -66,12 +74,24 @@ export default function Navbar({ theme, onToggleTheme, onToggleSidebar }) {
         <button
           type="button"
           className="saas-avatar-btn"
+          onClick={() => navigate(profilePath)}
+          title="Profile"
+        >
+          <span className="saas-avatar">
+            {avatarSrc ? <img src={avatarSrc} alt="Profile" /> : initials}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          className="saas-icon-btn"
           aria-haspopup="menu"
           aria-expanded={profileOpen}
           onClick={() => setProfileOpen((v) => !v)}
-          title="Profile"
+          title="Account menu"
+          aria-label="Account menu"
         >
-          <span className="saas-avatar">{initials}</span>
+          <FiChevronDown />
         </button>
 
         {profileOpen && (
@@ -83,7 +103,7 @@ export default function Navbar({ theme, onToggleTheme, onToggleSidebar }) {
             <button
               type="button"
               className="saas-menu-item"
-              onClick={() => navigate("/admin/settings")}
+              onClick={() => navigate(settingsPath)}
             >
               <span className="saas-menu-ic" aria-hidden="true">
                 <FiSettings />

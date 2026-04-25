@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { backend } from "../../services/backend";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
 
 export default function AdminDataPage() {
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
   const [hasLoaded, setHasLoaded] = useState(false);
 
   const [machineId, setMachineId] = useState("");
@@ -16,7 +16,6 @@ export default function AdminDataPage() {
 
   async function load({ nextPage = page, nextLimit = limit, nextMachineId = machineId } = {}) {
     setLoading(true);
-    setError("");
     try {
       const res = await backend.listSensorData({
         page: nextPage,
@@ -26,7 +25,7 @@ export default function AdminDataPage() {
       setResult(res);
       setHasLoaded(true);
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err), { dedupeKey: "admin-data-load" });
     } finally {
       setLoading(false);
     }
@@ -36,11 +35,9 @@ export default function AdminDataPage() {
   useEffect(() => {}, []);
 
   async function onUpload() {
-    setStatus("");
-    setError("");
     const file = fileInputRef.current?.files?.[0];
     if (!file) {
-      setError("Please choose a CSV or Excel file first.");
+      toast.error("Please choose a CSV or Excel file first.");
       return;
     }
 
@@ -48,12 +45,12 @@ export default function AdminDataPage() {
     try {
       const res = await backend.uploadSensorData(file);
       const rejected = res.rejectedCount ? `, ${res.rejectedCount} rejected` : "";
-      setStatus(`${res.insertedCount} rows imported${rejected}.`);
+      toast.success(`${res.insertedCount} rows imported${rejected}.`);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setPage(1);
       await load({ nextPage: 1 });
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     } finally {
       setUploading(false);
     }
@@ -61,14 +58,12 @@ export default function AdminDataPage() {
 
   async function onDelete(id) {
     if (!window.confirm("Delete this row?")) return;
-    setStatus("");
-    setError("");
     try {
       await backend.deleteSensorData(id);
-      setStatus("Row deleted.");
+      toast.success("Row deleted.");
       await load();
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     }
   }
 
@@ -94,9 +89,6 @@ export default function AdminDataPage() {
           </p>
         </div>
       </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
-      {status && <div className="banner banner-success">{status}</div>}
 
       <section className="panel">
         <div className="panel-head">

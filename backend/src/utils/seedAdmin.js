@@ -24,6 +24,7 @@ async function ensureDevAdmin() {
       email,
       passwordHash,
       role: "admin",
+      avatarUrl: null,
       createdAt: now,
       updatedAt: now
     });
@@ -40,4 +41,3 @@ async function ensureDevAdmin() {
 }
 
 module.exports = { ensureDevAdmin };
-

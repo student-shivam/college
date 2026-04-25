@@ -1,20 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { backend } from "../../services/backend";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
 
 export default function UserMachinesPage() {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState("");
 
   async function load() {
     setLoading(true);
-    setError("");
     try {
       const list = await backend.listMachines();
       setMachines(list || []);
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err), { dedupeKey: "user-machines-load" });
     } finally {
       setLoading(false);
     }
@@ -56,8 +56,6 @@ export default function UserMachinesPage() {
         </div>
       </div>
 
-      {error && <div className="banner banner-danger">{error}</div>}
-
       <section className="panel">
         <div className="panel-head">
           <div className="panel-title">All Machines</div>
@@ -97,4 +95,3 @@ export default function UserMachinesPage() {
     </div>
   );
 }
-

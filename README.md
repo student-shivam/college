@@ -35,6 +35,18 @@ copy .env.example .env
 npm run dev
 ```
 
+Default dev admin is auto-seeded on backend start (unless disabled):
+
+- Email: `admin@pm.local`
+- Password: `admin123`
+
+You can change/disable via `backend/.env`:
+
+- `SEED_ADMIN=true|false`
+- `SEED_ADMIN_EMAIL=...`
+- `SEED_ADMIN_PASSWORD=...`
+- `SEED_ADMIN_NAME=...`
+
 Set values in `backend/.env`:
 
 - `PORT=5000`

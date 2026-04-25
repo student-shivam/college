@@ -4,11 +4,13 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./App.css";
 import { AuthProvider } from "./auth/AuthProvider";
+import ToastHost from "./components/ToastHost";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
+        <ToastHost />
         <App />
       </AuthProvider>
     </BrowserRouter>

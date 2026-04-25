@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { backend } from "../../services/backend";
 import { useAuth } from "../../auth/AuthProvider";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
 
 const DASH = "\u2014";
 const ELLIPSIS = "\u2026";
@@ -16,8 +18,6 @@ export default function UserSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [changingPwd, setChangingPwd] = useState(false);
-  const [error, setError] = useState("");
-  const [ok, setOk] = useState("");
 
   const [machines, setMachines] = useState([]);
 
@@ -42,8 +42,6 @@ export default function UserSettingsPage() {
 
   async function load() {
     setLoading(true);
-    setError("");
-    setOk("");
     try {
       const [me, m] = await Promise.all([backend.getMe(), backend.listMachines()]);
       const u = me?.user || me;
@@ -62,7 +60,7 @@ export default function UserSettingsPage() {
         pressure: toInputValue(sd.pressure)
       });
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err), { dedupeKey: "user-settings-load" });
     } finally {
       setLoading(false);
     }
@@ -75,13 +73,11 @@ export default function UserSettingsPage() {
   async function saveProfile(e) {
     e.preventDefault();
     setSaving(true);
-    setError("");
-    setOk("");
 
     const nextName = String(name || "").trim();
     if (!nextName) {
       setSaving(false);
-      setError("Name cannot be empty.");
+      toast.error("Name cannot be empty.");
       return;
     }
 
@@ -95,9 +91,9 @@ export default function UserSettingsPage() {
         }
       });
       await refreshProfile();
-      setOk("Settings saved.");
+      toast.success("Settings saved.");
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -106,22 +102,20 @@ export default function UserSettingsPage() {
   async function changePassword(e) {
     e.preventDefault();
     setChangingPwd(true);
-    setError("");
-    setOk("");
 
     if (!currentPassword || !newPassword) {
       setChangingPwd(false);
-      setError("Current password and new password are required.");
+      toast.error("Current password and new password are required.");
       return;
     }
     if (String(newPassword).length < 6) {
       setChangingPwd(false);
-      setError("New password must be at least 6 characters.");
+      toast.error("New password must be at least 6 characters.");
       return;
     }
     if (newPassword !== confirmPassword) {
       setChangingPwd(false);
-      setError("New password and confirm password do not match.");
+      toast.error("New password and confirm password do not match.");
       return;
     }
 
@@ -130,9 +124,9 @@ export default function UserSettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setOk("Password updated.");
+      toast.success("Password updated.");
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     } finally {
       setChangingPwd(false);
     }
@@ -152,9 +146,6 @@ export default function UserSettingsPage() {
           </button>
         </div>
       </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
-      {ok && <div className="banner banner-success">{ok}</div>}
 
       <div className="settings-grid">
         <section className="panel">

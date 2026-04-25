@@ -1,112 +1,123 @@
-import { useEffect, useMemo, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthProvider";
+import { useEffect, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import Navbar from "./Navbar";
 import UserSidebar from "./UserSidebar";
+import { adminPrefEvents } from "../utils/adminPrefs";
+
+const THEME_KEY = "pm_theme";
+const COLLAPSE_KEY = "pm_user_sidebar_collapsed";
+
+function readStored(key, fallback) {
+  try {
+    const v = localStorage.getItem(key);
+    return v === null ? fallback : v;
+  } catch (_err) {
+    return fallback;
+  }
+}
+
+function isMobileWidth() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(max-width: 860px)")?.matches ?? false;
+}
 
 export default function UserLayout() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    const stored = readStored(THEME_KEY, "dark");
+    return stored === "light" ? "light" : "dark";
+  });
+  const [collapsed, setCollapsed] = useState(() => readStored(COLLAPSE_KEY, "0") === "1");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
 
-  const initials = useMemo(() => {
-    const parts = String(user?.name || "")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-    const first = parts[0]?.[0] || "U";
-    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] : "";
-    return (first + last).toUpperCase();
-  }, [user?.name]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (_err) {
+      // ignore
+    }
+    document.body.classList.remove("theme-dark", "theme-light");
+    document.body.classList.add(theme === "light" ? "theme-light" : "theme-dark");
+  }, [theme]);
+
+  useEffect(() => {
+    function syncThemeFromStorage() {
+      const stored = readStored(THEME_KEY, "dark");
+      setTheme(stored === "light" ? "light" : "dark");
+    }
+
+    function syncSidebarFromStorage() {
+      setCollapsed(readStored(COLLAPSE_KEY, "0") === "1");
+    }
+
+    function onStorage(e) {
+      if (!e) return;
+      if (e.key === THEME_KEY) syncThemeFromStorage();
+      if (e.key === COLLAPSE_KEY) syncSidebarFromStorage();
+    }
+
+    window.addEventListener(adminPrefEvents.themeChanged, syncThemeFromStorage);
+    window.addEventListener("pm_user_sidebar_change", syncSidebarFromStorage);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(adminPrefEvents.themeChanged, syncThemeFromStorage);
+      window.removeEventListener("pm_user_sidebar_change", syncSidebarFromStorage);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
+    } catch (_err) {
+      // ignore
+    }
+    window.dispatchEvent(new Event("pm_user_sidebar_change"));
+  }, [collapsed]);
 
   useEffect(() => {
     setMobileOpen(false);
-    setProfileOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
-    function onKeyDown(e) {
-      if (e.key === "Escape") {
-        setMobileOpen(false);
-        setProfileOpen(false);
-      }
+    function onResize() {
+      if (!isMobileWidth()) setMobileOpen(false);
     }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  function toggleDesktopCollapse() {
+    if (isMobileWidth()) {
+      setMobileOpen(false);
+      return;
+    }
+    setCollapsed((v) => !v);
+  }
+
+  function toggleMobileMenu() {
+    if (!isMobileWidth()) return;
+    setMobileOpen((v) => !v);
+  }
 
   return (
     <div className={["saas-shell", collapsed ? "sidebar-collapsed" : ""].join(" ")}>
+      <Navbar
+        theme={theme}
+        onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+        onToggleSidebar={toggleMobileMenu}
+        settingsPath="/user/settings"
+        profilePath="/user/profile"
+      />
+
       <UserSidebar
         collapsed={collapsed}
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
+        onToggle={toggleDesktopCollapse}
       />
 
-      <main className="saas-main">
-        <header className="saas-topbar" data-profile-root="true">
-          <div className="saas-topbar-left">
-            <button
-              type="button"
-              className="saas-icon-btn"
-              onClick={() => setMobileOpen(true)}
-              title="Open menu"
-            >
-              ☰
-            </button>
-            <button
-              type="button"
-              className="saas-icon-btn"
-              onClick={() => setCollapsed((v) => !v)}
-              title="Collapse sidebar"
-            >
-              ⫶
-            </button>
-            <div className="saas-topbar-title">Predictive Maintenance System</div>
-          </div>
-
-          <div className="saas-topbar-right">
-            <button type="button" className="saas-icon-btn" title="Theme" disabled>
-              ◐
-            </button>
-            <button type="button" className="saas-icon-btn" title="Notifications" disabled>
-              ●
-            </button>
-
-            <button
-              type="button"
-              className="saas-avatar-btn"
-              aria-haspopup="menu"
-              aria-expanded={profileOpen}
-              onClick={() => setProfileOpen((v) => !v)}
-              title="Profile"
-            >
-              <span className="saas-avatar">{initials}</span>
-            </button>
-
-            {profileOpen && (
-              <div className="saas-menu" role="menu">
-                <div className="saas-menu-meta">
-                  <div className="saas-menu-name">{user?.name}</div>
-                  <div className="saas-menu-role">{user?.role}</div>
-                </div>
-                <button
-                  type="button"
-                  className="saas-menu-item danger"
-                  onClick={() => {
-                    logout();
-                    navigate("/auth", { replace: true });
-                  }}
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
-
+      <main className="saas-main saas-main-with-fixed-nav">
         <div className="saas-content">
           <Outlet />
         </div>

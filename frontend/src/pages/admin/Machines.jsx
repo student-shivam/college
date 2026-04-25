@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { backend } from "../../services/backend";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
 
 export default function AdminMachinesPage() {
   const [machines, setMachines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("");
-  const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -18,18 +18,15 @@ export default function AdminMachinesPage() {
   function closeModal() {
     setModalOpen(false);
     setForm({ name: "", location: "", modelNumber: "", installedAt: "" });
-    setError("");
   }
 
   async function load() {
     setLoading(true);
-    setStatus("");
-    setError("");
     try {
       const list = await backend.listMachines();
       setMachines(list || []);
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err), { dedupeKey: "admin-machines-load" });
     } finally {
       setLoading(false);
     }
@@ -52,11 +49,9 @@ export default function AdminMachinesPage() {
 
   async function onCreate(e) {
     e.preventDefault();
-    setStatus("");
-    setError("");
     try {
       if (!form.name.trim()) {
-        setError("Machine name is required");
+        toast.error("Machine name is required.");
         return;
       }
 
@@ -68,11 +63,11 @@ export default function AdminMachinesPage() {
       };
 
       await backend.createMachine(payload);
-      setStatus("Machine created");
+      toast.success("Machine created.");
       closeModal();
       await load();
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     }
   }
 
@@ -85,9 +80,6 @@ export default function AdminMachinesPage() {
           <p className="muted">Add machines and manage configuration (API-ready).</p>
         </div>
       </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
-      {status && <div className="banner banner-success">{status}</div>}
 
       <article className="admin-card">
         <div className="admin-user-toolbar">
@@ -180,8 +172,6 @@ export default function AdminMachinesPage() {
                 X
               </button>
             </div>
-
-            {error && <div className="admin-form-error">{error}</div>}
 
             <form onSubmit={onCreate} className="form-block">
               <label>

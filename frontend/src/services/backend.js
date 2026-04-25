@@ -125,6 +125,17 @@ export const backend = {
     return (await axios.get(`${root}/health`, { timeout: 1500 })).data;
   },
 
+  // Profile
+  uploadMyAvatar: async (file) => {
+    const form = new FormData();
+    form.append("avatar", file);
+    const res = await api.post("/users/me/avatar", form, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  },
+  removeMyAvatar: async () => (await api.delete("/users/me/avatar")).data,
+
   // Dashboards (new overview + live stream)
   getAdminDashboardOverview: async ({ days = 7, alertLimit = 6, topLimit = 6 } = {}) => {
     const params = new URLSearchParams();

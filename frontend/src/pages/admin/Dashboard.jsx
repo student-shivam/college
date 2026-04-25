@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { backend } from "../../services/backend";
 import LineChart from "../../components/charts/LineChart";
 import DonutChart from "../../components/charts/DonutChart";
 import Sparkline from "../../components/charts/Sparkline";
 import { adminPrefEvents, loadAdminDashboardPrefs } from "../../utils/adminPrefs";
+import { isPredictionBumpKey, predictionEvents } from "../../utils/predictionEvents";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
 
 const DASH = "\u2014";
 const ELLIPSIS = "\u2026";
@@ -24,11 +27,10 @@ export default function AdminDashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(false);
-  const [error, setError] = useState("");
   const [prefsNonce, setPrefsNonce] = useState(0);
+  const liveRef = useRef(false);
 
   async function refresh() {
-    setError("");
     setLoading(true);
     try {
       const prefs = loadAdminDashboardPrefs();
@@ -39,7 +41,7 @@ export default function AdminDashboardPage() {
       });
       setData(next);
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err), { dedupeKey: "admin-dashboard-refresh" });
     } finally {
       setLoading(false);
     }
@@ -55,6 +57,8 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     let alive = true;
+    liveRef.current = false;
+    setLive(false);
     refresh();
 
     let es = null;
@@ -69,19 +73,43 @@ export default function AdminDashboardPage() {
           if (!alive) return;
           setData(snap);
           setLive(true);
+          liveRef.current = true;
         },
         onError: () => {
           if (!alive) return;
           setLive(false);
+          liveRef.current = false;
         }
       });
     } catch (_err) {
       // stream not available
     }
 
+    function onPredictionCreated() {
+      if (!alive) return;
+      refresh();
+    }
+
+    function onStorage(e) {
+      if (!alive) return;
+      if (isPredictionBumpKey(e?.key)) refresh();
+    }
+
+    window.addEventListener(predictionEvents.created, onPredictionCreated);
+    window.addEventListener("storage", onStorage);
+
+    // Fallback polling when SSE is offline (keeps dashboard updating “live” without errors).
+    const poll = setInterval(() => {
+      if (!alive) return;
+      if (!liveRef.current) refresh();
+    }, 4000);
+
     return () => {
       alive = false;
       es?.close();
+      clearInterval(poll);
+      window.removeEventListener(predictionEvents.created, onPredictionCreated);
+      window.removeEventListener("storage", onStorage);
     };
   }, [prefsNonce]);
 
@@ -141,8 +169,6 @@ export default function AdminDashboardPage() {
           </button>
         </div>
       </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
 
       <section className="dashboard-kpis">
         {cards.map((card) => (

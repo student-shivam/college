@@ -105,6 +105,7 @@ export default function Layout() {
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
         onToggleSidebar={toggleMobileMenu}
+        profilePath="/admin/profile"
       />
 
       <Sidebar

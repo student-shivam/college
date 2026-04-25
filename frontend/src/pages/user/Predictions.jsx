@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { backend } from "../../services/backend";
 import { useAuth } from "../../auth/AuthProvider";
 import { playRiskSound } from "../../utils/sound";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
+import { broadcastPredictionCreated } from "../../utils/predictionEvents";
 import { initialSensors, sensorFields, sensorFieldsAll } from "./predictionFormData";
 
 const ELLIPSIS = "\u2026";
@@ -12,13 +15,31 @@ function clampNumber(n, min, max) {
   return Math.min(Math.max(n, min), max);
 }
 
-function riskTone(riskLevel) {
-  const r = String(riskLevel || "").toLowerCase();
-  if (r === "critical") return "danger";
-  if (r === "high") return "high";
-  if (r === "medium") return "warn";
-  if (r === "low") return "ok";
-  return "base";
+function normalizeRiskKey(riskLevel) {
+  const raw = String(riskLevel || "").trim().toLowerCase();
+  const compact = raw.replace(/\s+/g, "");
+  if (compact === "low" || compact === "normal" || compact === "healthy") return "low";
+  if (compact === "medium" || compact === "warning") return "medium";
+  if (compact === "high" || compact === "highrisk") return "high";
+  if (compact === "critical") return "critical";
+  return "";
+}
+
+function formatRiskLabel(riskLevel) {
+  const key = normalizeRiskKey(riskLevel);
+  if (key === "low") return "Normal";
+  if (key === "medium") return "Warning";
+  if (key === "high") return "High Risk";
+  if (key === "critical") return "Critical";
+  return String(riskLevel || DASH) || DASH;
+}
+
+function riskSummary(key) {
+  if (key === "low") return "Operation looks healthy based on current sensor readings.";
+  if (key === "medium") return "Early risk signals detected. Schedule an inspection soon.";
+  if (key === "high") return "Elevated failure risk. Plan maintenance and reduce load.";
+  if (key === "critical") return "Immediate action recommended. Stop operation if unsafe.";
+  return "";
 }
 
 export default function UserPredictionsPage() {
@@ -26,7 +47,6 @@ export default function UserPredictionsPage() {
   const [loading, setLoading] = useState(true);
   const [predictLoading, setPredictLoading] = useState(false);
   const [backendOnline, setBackendOnline] = useState(true);
-  const [error, setError] = useState("");
   const [machines, setMachines] = useState([]);
   const [selectedMachineId, setSelectedMachineId] = useState("");
   const [sensors, setSensors] = useState(initialSensors);
@@ -73,11 +93,12 @@ export default function UserPredictionsPage() {
 
   async function load() {
     setLoading(true);
-    setError("");
     const ok = await checkBackend();
     if (!ok) {
       setLoading(false);
-      setError("Backend is offline. Start backend on port 5000, then click Refresh.");
+      toast.error("Service is currently unavailable. Please try again.", {
+        dedupeKey: "user-predictions-backend-offline"
+      });
       return;
     }
     try {
@@ -88,7 +109,7 @@ export default function UserPredictionsPage() {
       setMachines(mRes || []);
       setPredictions(list || []);
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -104,7 +125,13 @@ export default function UserPredictionsPage() {
 
   const riskBadgeClass = useMemo(() => {
     if (!latestPrediction) return "";
-    return `risk-badge risk-${String(latestPrediction.riskLevel).toLowerCase()}`;
+    const key = normalizeRiskKey(latestPrediction.riskLevel);
+    return `risk-badge${key ? ` risk-${key}` : ""}`;
+  }, [latestPrediction]);
+
+  const latestRiskKey = useMemo(() => {
+    if (!latestPrediction) return "";
+    return normalizeRiskKey(latestPrediction.riskLevel);
   }, [latestPrediction]);
 
   const probabilityPct = useMemo(() => {
@@ -125,11 +152,10 @@ export default function UserPredictionsPage() {
   async function predict(e) {
     e.preventDefault();
     setPredictLoading(true);
-    setError("");
     const ok = backendOnline || (await checkBackend());
     if (!ok) {
       setPredictLoading(false);
-      setError("Backend is offline. Start backend on port 5000, then try again.");
+      toast.error("Service is currently unavailable. Please try again.");
       return;
     }
     try {
@@ -147,9 +173,10 @@ export default function UserPredictionsPage() {
       const res = await backend.createPrediction(payload);
       setLatestPrediction(res);
       playRiskSound(res?.riskLevel);
+      broadcastPredictionCreated({ scope: "user", predictionId: res?._id || null });
       await load();
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     } finally {
       setPredictLoading(false);
     }
@@ -220,13 +247,15 @@ export default function UserPredictionsPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+          <div className={`status-indicator ${backendOnline ? "is-ok" : "is-bad"}`}>
+            <span className="status-dot" aria-hidden="true" />
+            <span className="status-text">Backend {backendOnline ? "Online" : "Offline"}</span>
+          </div>
           <button type="button" className="btn-secondary" onClick={load} disabled={loading}>
             {loading ? "Loading..." : "Refresh"}
           </button>
         </div>
       </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
 
       <div className="predictions-grid">
         <section className="panel">
@@ -330,15 +359,17 @@ export default function UserPredictionsPage() {
             <div className="panel-sub">Live result</div>
           </div>
           {latestPrediction ? (
-            <div className={["pred-result", `tone-${riskTone(latestPrediction.riskLevel)}`].join(" ")}>
+            <div className="pred-result">
               <div className="pred-result-head">
-                <div className={riskBadgeClass}>{latestPrediction.riskLevel} Risk</div>
+                <div className={riskBadgeClass}>{formatRiskLabel(latestPrediction.riskLevel)}</div>
                 <div className="pred-meta muted">
                   {latestPrediction.predictedAt
                     ? new Date(latestPrediction.predictedAt).toLocaleString()
-                    : ""}
+                    : DASH}
                 </div>
               </div>
+
+              {latestRiskKey && <div className="pred-status-sub">{riskSummary(latestRiskKey)}</div>}
 
               <div className="pred-prob">
                 <div className="pred-prob-top">
@@ -428,8 +459,14 @@ export default function UserPredictionsPage() {
                   <td>{row.predictedAt ? new Date(row.predictedAt).toLocaleString() : DASH}</td>
                   <td>{row.machine?.name || DASH}</td>
                   <td>
-                    <span className={`risk-badge risk-${String(row.riskLevel || "").toLowerCase()}`}>
-                      {row.riskLevel || DASH}
+                    <span
+                      className={`risk-badge${
+                        normalizeRiskKey(row.riskLevel)
+                          ? ` risk-${normalizeRiskKey(row.riskLevel)}`
+                          : ""
+                      }`}
+                    >
+                      {formatRiskLabel(row.riskLevel)}
                     </span>
                   </td>
                   <td>

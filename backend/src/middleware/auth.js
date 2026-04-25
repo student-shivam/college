@@ -30,6 +30,7 @@ async function authenticate(req, res, next) {
           name: user.name,
           email: user.email,
           role: user.role,
+          avatarUrl: user.avatarUrl || null,
           preferences: user.preferences || undefined
         };
       }

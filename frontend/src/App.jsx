@@ -15,11 +15,13 @@ import AdminAlertsPage from "./pages/admin/Alerts";
 import AdminLogsPage from "./pages/admin/Logs";
 import AdminReportsPage from "./pages/admin/Reports";
 import AdminSettingsPage from "./pages/admin/Settings";
+import AdminProfilePage from "./pages/admin/Profile";
 
 import UserDashboardPage from "./pages/user/Dashboard";
 import UserMachinesPage from "./pages/user/Machines";
 import UserPredictionsPage from "./pages/user/Predictions";
 import UserSettingsPage from "./pages/user/Settings";
+import UserProfilePage from "./pages/user/Profile";
 
 function HomeRedirect() {
   const { user, loading } = useAuth();
@@ -46,6 +48,7 @@ export default function App() {
           <Route path="alerts" element={<AdminAlertsPage />} />
           <Route path="logs" element={<AdminLogsPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="profile" element={<AdminProfilePage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>
       </Route>
@@ -56,6 +59,7 @@ export default function App() {
           <Route path="dashboard" element={<UserDashboardPage />} />
           <Route path="machines" element={<UserMachinesPage />} />
           <Route path="predictions" element={<UserPredictionsPage />} />
+          <Route path="profile" element={<UserProfilePage />} />
           <Route path="settings" element={<UserSettingsPage />} />
         </Route>
       </Route>

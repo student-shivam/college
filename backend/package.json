@@ -4,7 +4,8 @@
   "description": "Express + Mongo backend for predictive maintenance system",
   "main": "src/server.js",
   "scripts": {
-    "dev": "node --watch src/server.js",
+    "dev": "node src/server.js",
+    "dev:watch": "node --watch src/server.js",
     "start": "node src/server.js"
   },
   "dependencies": {

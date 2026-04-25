@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { toast } from "../utils/toastBus";
+import { toUiErrorMessage } from "../utils/toUiErrorMessage";
 
 export default function AuthPage() {
   const { user, login, signup } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState("login");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -23,8 +23,6 @@ export default function AuthPage() {
 
   async function onSubmit(e) {
     e.preventDefault();
-    setError("");
-    setNotice("");
     setLoading(true);
     try {
       const nextUser =
@@ -36,25 +34,21 @@ export default function AuthPage() {
             })
           : await signup(form);
 
+      toast.success(mode === "login" ? "Signed in successfully." : "Account created successfully.");
       navigate(nextUser.role === "admin" ? "/admin/dashboard" : "/user/dashboard", {
         replace: true
       });
     } catch (err) {
-      if (err?.isNetworkError || !err?.response) {
-        setNotice("Backend is not running. Start backend (port 5000) and then try again.");
-        return;
-      }
       const status = err?.response?.status;
-      const message = err.response?.data?.message || err.message;
       if (status === 401) {
-        setError("Invalid email or password.");
+        toast.error("Invalid email or password.");
         return;
       }
       if (status === 409) {
-        setError("Email already registered. Please login instead.");
+        toast.error("Email already registered. Please login instead.");
         return;
       }
-      setError(message);
+      toast.error(toUiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -71,9 +65,6 @@ export default function AuthPage() {
           <h1>Predictive Maintenance Portal</h1>
           <p>Smart maintenance. Smarter operations.</p>
         </div>
-
-        {notice && <div className="info-box">{notice}</div>}
-        {error && <div className="error-box">{error}</div>}
 
         <div className="auth-toggle">
           <button

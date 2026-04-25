@@ -1,9 +1,6 @@
-import { useState } from "react";
 import UserManagement from "../../components/UserManagement";
 
 export default function AdminUsersPage() {
-  const [error, setError] = useState("");
-
   return (
     <div className="page">
       <div className="page-head">
@@ -13,10 +10,7 @@ export default function AdminUsersPage() {
           <p className="muted">Add, edit, delete users and assign roles.</p>
         </div>
       </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
-      <UserManagement onError={setError} />
+      <UserManagement />
     </div>
   );
 }
-

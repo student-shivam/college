@@ -108,14 +108,27 @@ body {
   height: 44px;
   padding: 0;
   border-radius: 14px;
-  background: transparent;
-  border: 1px solid #c8d3ea;
+  background: rgba(0, 87, 217, 0.06);
+  border: 1px solid rgba(0, 87, 217, 0.22);
   display: grid;
   place-items: center;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.profile-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 87, 217, 0.1);
+  border-color: rgba(0, 87, 217, 0.32);
 }
 
 .admin-topbar .profile-btn {
   border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-topbar .profile-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .avatar {
@@ -585,12 +598,20 @@ body {
 }
 
 .auth-footer button {
-  padding: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: #6f79ff;
+  width: auto;
+  max-width: none;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(111, 121, 255, 0.14);
+  color: #c9ceff;
   font-size: 15px;
-  border: none;
+  border: 1px solid rgba(111, 121, 255, 0.28);
+  box-shadow: none;
+}
+
+.auth-footer button:hover {
+  background: rgba(111, 121, 255, 0.2);
+  border-color: rgba(111, 121, 255, 0.42);
 }
 
 .hero {
@@ -620,9 +641,18 @@ body {
 }
 
 .hero-meta button {
+  width: auto;
+  max-width: none;
   background: #e4ecff;
   color: #122241;
   padding: 7px 12px;
+  border: 1px solid rgba(18, 34, 65, 0.12);
+  box-shadow: 0 10px 22px rgba(18, 34, 65, 0.12);
+}
+
+.hero-meta button:hover {
+  filter: brightness(0.98);
+  border-color: rgba(18, 34, 65, 0.2);
 }
 
 .grid {
@@ -668,10 +698,33 @@ button {
 
 button {
   cursor: pointer;
-  border: none;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   background: var(--primary);
   color: #fff;
   font-weight: 600;
+  box-shadow: 0 10px 22px rgba(0, 87, 217, 0.22);
+  transition:
+    transform 120ms ease,
+    filter 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+button:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 12px 26px rgba(0, 87, 217, 0.28);
+}
+
+button:active {
+  transform: translateY(1px);
+  filter: brightness(0.98);
+  box-shadow: 0 8px 18px rgba(0, 87, 217, 0.22);
+}
+
+button:focus-visible {
+  outline: 3px solid rgba(0, 87, 217, 0.35);
+  outline-offset: 2px;
 }
 
 .auth-card label span {
@@ -1068,6 +1121,13 @@ body.theme-light .saas-shell .settings-role-pill {
 .pred-meta {
   font-weight: 800;
   font-size: 13px;
+}
+
+.pred-status-sub {
+  margin-top: -6px;
+  color: rgba(235, 241, 255, 0.78);
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .pred-prob-top {
@@ -1644,12 +1704,20 @@ td {
   --saas-nav-h: 72px;
   --saas-sidebar-w: 292px;
   --saas-sidebar-w-collapsed: 92px;
+  --saas-surface: rgba(10, 18, 40, 0.7);
+  --saas-surface-2: rgba(6, 10, 22, 0.5);
+  --saas-line: rgba(255, 255, 255, 0.08);
+  --saas-border: rgba(255, 255, 255, 0.12);
+  --saas-text: rgba(235, 241, 255, 0.92);
+  --saas-muted: rgba(235, 241, 255, 0.62);
+  --saas-muted-2: rgba(235, 241, 255, 0.72);
+  --saas-placeholder: rgba(235, 241, 255, 0.54);
   min-height: 100vh;
   background:
     radial-gradient(circle at 12% 0%, rgba(71, 88, 234, 0.22), transparent 42%),
     radial-gradient(circle at 85% 100%, rgba(122, 53, 223, 0.18), transparent 50%),
     linear-gradient(180deg, #050816, #060a16);
-  color: rgba(235, 241, 255, 0.92);
+  color: var(--saas-text);
 }
 
 .saas-shell.sidebar-collapsed {
@@ -1657,11 +1725,19 @@ td {
 }
 
 body.theme-light .saas-shell {
+  --saas-surface: rgba(255, 255, 255, 0.78);
+  --saas-surface-2: rgba(255, 255, 255, 0.9);
+  --saas-line: rgba(20, 40, 90, 0.12);
+  --saas-border: rgba(20, 40, 90, 0.14);
+  --saas-text: rgba(10, 16, 30, 0.92);
+  --saas-muted: rgba(10, 16, 30, 0.56);
+  --saas-muted-2: rgba(10, 16, 30, 0.62);
+  --saas-placeholder: rgba(10, 16, 30, 0.46);
   background:
     radial-gradient(circle at 12% 0%, rgba(71, 88, 234, 0.16), transparent 46%),
     radial-gradient(circle at 85% 100%, rgba(122, 53, 223, 0.12), transparent 55%),
     linear-gradient(180deg, #f7f8ff, #eef2ff);
-  color: rgba(10, 16, 30, 0.92);
+  color: var(--saas-text);
 }
 
 .saas-sidebar {
@@ -1980,10 +2056,27 @@ body.theme-light .saas-icon-btn {
   height: 44px;
   padding: 0;
   border-radius: 14px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   display: grid;
   place-items: center;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.saas-avatar-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+body.theme-light .saas-avatar-btn {
+  background: rgba(20, 40, 90, 0.06);
+  border-color: rgba(20, 40, 90, 0.16);
+}
+
+body.theme-light .saas-avatar-btn:hover {
+  background: rgba(20, 40, 90, 0.1);
+  border-color: rgba(20, 40, 90, 0.24);
 }
 
 .saas-avatar {
@@ -1996,6 +2089,14 @@ body.theme-light .saas-icon-btn {
   place-items: center;
   font-weight: 900;
   font-size: 13px;
+  overflow: hidden;
+}
+
+.saas-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .saas-menu {
@@ -2081,6 +2182,70 @@ body.theme-light .saas-menu-item {
   }
 }
 
+.profile-card {
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  gap: 18px;
+  align-items: center;
+}
+
+.profile-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.profile-initials {
+  font-weight: 1000;
+  font-size: 34px;
+  letter-spacing: 0.5px;
+}
+
+.profile-name {
+  font-weight: 1000;
+  font-size: 20px;
+}
+
+.profile-sub {
+  margin-top: 4px;
+  color: rgba(235, 241, 255, 0.7);
+}
+
+.profile-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.profile-file {
+  display: none;
+}
+
+.profile-help {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .profile-card {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+}
+
 .saas-content {
   padding: 18px;
   max-width: 1200px;
@@ -2148,6 +2313,63 @@ body.theme-light .saas-shell .page-kicker {
   color: rgba(235, 241, 255, 0.92);
 }
 
+.banner-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.banner-title {
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.banner-sub {
+  font-weight: 800;
+  opacity: 0.92;
+}
+
+.banner-hint {
+  font-weight: 800;
+  opacity: 0.78;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  user-select: none;
+}
+
+.status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.status-indicator.is-ok .status-dot {
+  background: #20d57a;
+  box-shadow: 0 0 0 4px rgba(32, 213, 122, 0.16);
+}
+
+.status-indicator.is-bad .status-dot {
+  background: #ff5b5b;
+  box-shadow: 0 0 0 4px rgba(255, 91, 91, 0.16);
+}
+
+.status-text {
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: rgba(235, 241, 255, 0.9);
+}
+
 body.theme-light .saas-shell .banner {
   border-color: rgba(20, 40, 90, 0.12);
   background: rgba(255, 255, 255, 0.7);
@@ -2158,6 +2380,15 @@ body.theme-light .saas-shell .banner-danger {
   background: rgba(255, 70, 100, 0.12);
   border-color: rgba(255, 70, 100, 0.22);
   color: rgba(130, 18, 40, 0.9);
+}
+
+body.theme-light .saas-shell .status-indicator {
+  border-color: rgba(20, 40, 90, 0.14);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+body.theme-light .saas-shell .status-text {
+  color: rgba(10, 16, 30, 0.82);
 }
 
 .card-grid {
@@ -2272,7 +2503,7 @@ body.theme-light .saas-shell .panel-sub {
 }
 
 .risk-count {
-  color: rgba(235, 241, 255, 0.78);
+  color: var(--saas-muted-2);
 }
 
 .two-col {
@@ -2291,22 +2522,30 @@ body.theme-light .saas-shell .panel-sub {
   width: min(420px, 100%);
   border-radius: 16px;
   padding: 12px 14px;
-  background: rgba(6, 10, 22, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(235, 241, 255, 0.92);
+  background: var(--saas-surface-2);
+  border: 1px solid var(--saas-border);
+  color: var(--saas-text);
+}
+
+.search::placeholder {
+  color: var(--saas-placeholder);
 }
 
 .btn-secondary {
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--saas-border);
+}
+
+body.theme-light .saas-shell .btn-secondary {
+  background: rgba(20, 40, 90, 0.06);
 }
 
 .select {
   border-radius: 16px;
   padding: 12px 14px;
-  background: rgba(6, 10, 22, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(235, 241, 255, 0.92);
+  background: var(--saas-surface-2);
+  border: 1px solid var(--saas-border);
+  color: var(--saas-text);
 }
 
 .upload-row {
@@ -2321,9 +2560,13 @@ body.theme-light .saas-shell .panel-sub {
   min-width: 260px;
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(6, 10, 22, 0.5);
-  border: 1px dashed rgba(255, 255, 255, 0.18);
-  color: rgba(235, 241, 255, 0.82);
+  background: var(--saas-surface-2);
+  border: 1px dashed var(--saas-border);
+  color: var(--saas-text);
+}
+
+.upload-input::placeholder {
+  color: var(--saas-placeholder);
 }
 
 .pager {
@@ -2395,7 +2638,7 @@ body.theme-light .saas-shell .panel-sub {
 }
 
 .form-label {
-  color: rgba(235, 241, 255, 0.62);
+  color: var(--saas-muted);
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2421,6 +2664,29 @@ body.theme-light .saas-shell .panel-sub {
   margin-top: 6px;
 }
 
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid var(--saas-line);
+  padding: 10px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--saas-text);
+}
+
+.admin-table th {
+  color: var(--saas-muted);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -2429,15 +2695,15 @@ body.theme-light .saas-shell .panel-sub {
 
 .table th,
 .table td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--saas-line);
   padding: 10px;
   text-align: left;
   font-size: 14px;
-  color: rgba(235, 241, 255, 0.82);
+  color: var(--saas-text);
 }
 
 .table th {
-  color: rgba(235, 241, 255, 0.62);
+  color: var(--saas-muted);
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2461,7 +2727,7 @@ body.theme-light .saas-shell .panel-sub {
 }
 
 .empty-sub {
-  color: rgba(235, 241, 255, 0.62);
+  color: var(--saas-muted);
 }
 
 .btn-row {
@@ -2480,7 +2746,7 @@ body.theme-light .saas-shell .panel-sub {
 }
 
 .model-status-label {
-  color: rgba(235, 241, 255, 0.62);
+  color: var(--saas-muted);
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2498,9 +2764,25 @@ body.theme-light .saas-shell .panel-sub {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--saas-border);
   background: rgba(255, 255, 255, 0.06);
-  color: rgba(235, 241, 255, 0.9);
+  color: var(--saas-text);
+}
+
+body.theme-light .saas-shell .model-status-pill {
+  background: rgba(20, 40, 90, 0.06);
+}
+
+body.theme-light .saas-shell .model-status-pill[data-status="Training"] {
+  color: rgba(92, 58, 0, 0.92);
+}
+
+body.theme-light .saas-shell .model-status-pill[data-status="Completed"] {
+  color: rgba(0, 68, 34, 0.92);
+}
+
+body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
+  color: rgba(130, 18, 40, 0.92);
 }
 
 .model-status-pill[data-status="Training"] {
@@ -2535,20 +2817,20 @@ body.theme-light .saas-shell .panel-sub {
 }
 
 .model-progress-label {
-  color: rgba(235, 241, 255, 0.62);
+  color: var(--saas-muted);
   font-weight: 800;
 }
 
 .model-progress-value {
   font-weight: 900;
-  color: rgba(235, 241, 255, 0.82);
+  color: var(--saas-text);
 }
 
 .model-progress-track {
   height: 12px;
   border-radius: 999px;
-  background: rgba(6, 10, 22, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--saas-surface-2);
+  border: 1px solid var(--saas-border);
   overflow: hidden;
 }
 
@@ -2581,11 +2863,11 @@ body.theme-light .saas-shell .panel-sub {
   padding: 14px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--saas-line);
 }
 
 .model-metric-kicker {
-  color: rgba(235, 241, 255, 0.6);
+  color: var(--saas-muted);
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -2597,7 +2879,7 @@ body.theme-light .saas-shell .panel-sub {
   font-size: 20px;
   font-weight: 950;
   letter-spacing: -0.4px;
-  color: rgba(235, 241, 255, 0.92);
+  color: var(--saas-text);
   word-break: break-word;
 }
 
@@ -2949,4 +3231,62 @@ body.theme-light .saas-shell .panel-sub {
   .dash-donut {
     grid-template-columns: 1fr;
   }
+}
+
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 12px 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 12, 28, 0.82);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.46);
+  color: rgba(235, 241, 255, 0.92);
+}
+
+.toast-message {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.toast-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(235, 241, 255, 0.86);
+  cursor: pointer;
+}
+
+.toast-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toast-info {
+  border-color: rgba(122, 53, 223, 0.35);
+}
+
+.toast-success {
+  border-color: rgba(40, 209, 124, 0.35);
+}
+
+.toast-error {
+  border-color: rgba(255, 74, 91, 0.42);
 }

@@ -1,13 +1,14 @@
 import { NavLink } from "react-router-dom";
+import { FiActivity, FiCpu, FiGrid, FiMenu, FiSettings } from "react-icons/fi";
 
 const items = [
-  { to: "/user/dashboard", label: "Dashboard", icon: "DB" },
-  { to: "/user/machines", label: "Machines", icon: "MC" },
-  { to: "/user/predictions", label: "Predictions", icon: "PR" },
-  { to: "/user/settings", label: "Settings", icon: "ST" }
+  { to: "/user/dashboard", label: "Dashboard", Icon: FiGrid },
+  { to: "/user/machines", label: "Machines", Icon: FiCpu },
+  { to: "/user/predictions", label: "Predictions", Icon: FiActivity },
+  { to: "/user/settings", label: "Settings", Icon: FiSettings }
 ];
 
-export default function UserSidebar({ collapsed, mobileOpen, onClose }) {
+export default function UserSidebar({ collapsed, mobileOpen, onClose, onToggle }) {
   return (
     <>
       <aside
@@ -20,7 +21,21 @@ export default function UserSidebar({ collapsed, mobileOpen, onClose }) {
           .join(" ")}
         aria-label="User navigation"
       >
-        <div className="saas-sidebar-brand">
+        <button
+          type="button"
+          className="saas-collapse-btn"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggle?.();
+          }}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label="Toggle sidebar"
+        >
+          <FiMenu />
+        </button>
+
+        <div className="saas-sidebar-brand" title={collapsed ? "Predictive Maintenance" : undefined}>
           <div className="saas-logo" aria-hidden="true">
             PM
           </div>
@@ -39,9 +54,11 @@ export default function UserSidebar({ collapsed, mobileOpen, onClose }) {
                 ["saas-nav-item", isActive ? "active" : ""].filter(Boolean).join(" ")
               }
               end
+              title={collapsed ? item.label : undefined}
+              data-tooltip={collapsed ? item.label : undefined}
             >
               <span className="saas-nav-icon" aria-hidden="true">
-                {item.icon}
+                <item.Icon />
               </span>
               <span className="saas-nav-label">{item.label}</span>
             </NavLink>
@@ -57,4 +74,3 @@ export default function UserSidebar({ collapsed, mobileOpen, onClose }) {
     </>
   );
 }
-

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { backend } from "../../services/backend";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
 
 const METRICS = [
   { value: "failureProbability", label: "Failure Probability" },
@@ -46,8 +48,6 @@ function buildRuleSummary(rule) {
 
 export default function AdminAlertsPage() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   const [rules, setRules] = useState([]);
@@ -68,7 +68,6 @@ export default function AdminAlertsPage() {
 
   async function loadAll({ silent = false } = {}) {
     if (!silent) setLoading(true);
-    setError("");
     try {
       const [rulesRes, eventsRes] = await Promise.all([
         backend.listAlertRules(),
@@ -80,12 +79,10 @@ export default function AdminAlertsPage() {
       const code = err?.response?.status;
       if (code === 404) {
         setAutoRefresh(false);
-        setError(
-          "Alerts API not found (404). Restart the backend so it picks up the latest routes, then refresh."
-        );
+        toast.error("Alerts service is unavailable right now.");
         return;
       }
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err), { dedupeKey: "admin-alerts-load" });
     } finally {
       if (!silent) setLoading(false);
     }
@@ -142,8 +139,6 @@ export default function AdminAlertsPage() {
 
   async function saveRule() {
     setSaving(true);
-    setError("");
-    setStatus("");
     try {
       const payload = {
         name: String(form.name || "").trim(),
@@ -155,47 +150,44 @@ export default function AdminAlertsPage() {
       };
 
       if (!payload.name) {
-        setError("Rule name is required.");
+        toast.error("Rule name is required.");
         return;
       }
 
       if (editing?._id) {
         await backend.updateAlertRule(editing._id, payload);
-        setStatus("Rule updated.");
+        toast.success("Rule updated.");
       } else {
         await backend.createAlertRule(payload);
-        setStatus("Rule created.");
+        toast.success("Rule created.");
       }
       closeModal();
       await loadAll({ silent: true });
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     } finally {
       setSaving(false);
     }
   }
 
   async function toggleRule(rule) {
-    setError("");
-    setStatus("");
     try {
       await backend.updateAlertRule(rule._id, { enabled: !(rule.enabled !== false) });
+      toast.success(rule.enabled !== false ? "Rule disabled." : "Rule enabled.");
       await loadAll({ silent: true });
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     }
   }
 
   async function deleteRule(rule) {
     if (!window.confirm(`Delete rule "${rule.name}"?`)) return;
-    setError("");
-    setStatus("");
     try {
       await backend.deleteAlertRule(rule._id);
-      setStatus("Rule deleted.");
+      toast.success("Rule deleted.");
       await loadAll({ silent: true });
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err));
     }
   }
 
@@ -216,9 +208,6 @@ export default function AdminAlertsPage() {
           </button>
         </div>
       </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
-      {status && <div className="banner banner-success">{status}</div>}
 
       <section className="panel">
         <div className="panel-head">

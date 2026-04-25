@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { backend } from "../../services/backend";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
 
 function getAxiosErrorMessage(err) {
   const status = err?.response?.status;
-  const apiMessage = err?.response?.data?.message || err?.response?.data?.detail;
 
   if (status === 404) {
-    return (
-      "Model API not found (404). Restart the backend (stop port 5000, then run: cd backend && npm run dev) and refresh."
-    );
+    return "Model service is unavailable right now.";
   }
 
-  return apiMessage || err.message || "Request failed";
+  return toUiErrorMessage(err);
 }
 
 function formatDate(value) {
@@ -32,17 +31,14 @@ export default function AdminModelPage() {
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
 
   async function loadStatus({ silent = false } = {}) {
     if (!silent) setLoading(true);
-    setError("");
     try {
       const res = await backend.getModelStatus();
       setMeta(res);
     } catch (err) {
-      setError(getAxiosErrorMessage(err));
+      toast.error(getAxiosErrorMessage(err), { dedupeKey: "admin-model-load" });
     } finally {
       if (!silent) setLoading(false);
     }
@@ -62,14 +58,12 @@ export default function AdminModelPage() {
 
   async function onTrain() {
     setActionLoading(true);
-    setError("");
-    setStatus("");
     try {
       await backend.trainModel();
-      setStatus("Training started. You can monitor progress below.");
+      toast.success("Training started.");
       await loadStatus({ silent: true });
     } catch (err) {
-      setError(getAxiosErrorMessage(err));
+      toast.error(getAxiosErrorMessage(err));
     } finally {
       setActionLoading(false);
     }
@@ -77,14 +71,12 @@ export default function AdminModelPage() {
 
   async function onUpdate() {
     setActionLoading(true);
-    setError("");
-    setStatus("");
     try {
       await backend.updateModel();
-      setStatus("Model update started. Monitoring progress...");
+      toast.success("Model update started.");
       await loadStatus({ silent: true });
     } catch (err) {
-      setError(getAxiosErrorMessage(err));
+      toast.error(getAxiosErrorMessage(err));
     } finally {
       setActionLoading(false);
     }
@@ -112,9 +104,6 @@ export default function AdminModelPage() {
           </button>
         </div>
       </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
-      {status && <div className="banner banner-success">{status}</div>}
 
       <section className="panel">
         <div className="panel-head">

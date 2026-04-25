@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api";
+import { backend } from "../services/backend";
+import { toast } from "../utils/toastBus";
+import { toUiErrorMessage } from "../utils/toUiErrorMessage";
 
-export default function UserManagement({ onError }) {
+export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [backendOnline, setBackendOnline] = useState(true);
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [status, setStatus] = useState("");
-  const [pageError, setPageError] = useState("");
   const [usersApiMissing, setUsersApiMissing] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -44,19 +46,32 @@ export default function UserManagement({ onError }) {
 
   async function loadUsers() {
     setLoading(true);
-    setStatus("");
-    setPageError("");
     try {
+      try {
+        await backend.pingBackend();
+        setBackendOnline(true);
+      } catch (_err) {
+        setBackendOnline(false);
+        setUsers([]);
+        setUsersApiMissing(false);
+        toast.error("Service is currently unavailable. Please try again.", {
+          dedupeKey: "admin-users-backend-offline"
+        });
+        return;
+      }
+
       const res = await api.get("/users");
       setUsers(sortUsers(res.data || []));
       setUsersApiMissing(false);
     } catch (err) {
-      const msg = err.response?.data?.message || err.message;
       if (err.response?.status === 404) {
         setUsersApiMissing(true);
+        toast.info("Users API is unavailable; some actions may be limited.", {
+          dedupeKey: "users-api-missing",
+          suppressMs: 12000
+        });
       } else {
-        setPageError(msg);
-        onError?.(msg);
+        toast.error(toUiErrorMessage(err));
         setUsersApiMissing(false);
       }
     } finally {
@@ -65,23 +80,24 @@ export default function UserManagement({ onError }) {
   }
 
   useEffect(() => {
-    onError?.("");
     loadUsers();
   }, []);
 
   async function submit(e) {
     e.preventDefault();
-    setStatus("");
-    setPageError("");
-    onError?.("");
     try {
+      if (!backendOnline) {
+        toast.error("Service is currently unavailable. Please try again.");
+        return;
+      }
+
       if (!form.name.trim() || !form.email.trim()) {
-        setPageError("Name and email are required");
+        toast.error("Name and email are required.");
         return;
       }
 
       if (!editing && String(form.password).length < 6) {
-        setPageError("Password must be at least 6 characters");
+        toast.error("Password must be at least 6 characters.");
         return;
       }
 
@@ -95,12 +111,12 @@ export default function UserManagement({ onError }) {
 
         const res = await api.patch(`/users/${editing._id}`, payload);
         setUsers((prev) => prev.map((u) => (u._id === editing._id ? res.data : u)));
-        setStatus("User updated");
+        toast.success("User updated.");
       } else {
         try {
           const res = await api.post("/users", form);
           setUsers((prev) => sortUsers([res.data, ...prev]));
-          setStatus("User created");
+          toast.success("User created.");
           setUsersApiMissing(false);
         } catch (err) {
           if (err.response?.status !== 404) {
@@ -123,7 +139,7 @@ export default function UserManagement({ onError }) {
                 ...prev
               ])
             );
-            setStatus("User created");
+            toast.success("User created.");
           }
           setUsersApiMissing(true);
         }
@@ -131,28 +147,23 @@ export default function UserManagement({ onError }) {
 
       closeModal();
     } catch (err) {
-      const msg = err.response?.data?.message || err.message;
-      setPageError(msg);
-      onError?.(msg);
+      if (err?.isNetworkError || !err?.response) setBackendOnline(false);
+      toast.error(toUiErrorMessage(err));
     }
   }
 
   async function remove(user) {
     if (!window.confirm(`Delete user "${user.name}"?`)) return;
-    setStatus("");
-    setPageError("");
-    onError?.("");
     try {
       await api.delete(`/users/${user._id}`);
       setUsers((prev) => prev.filter((u) => u._id !== user._id));
-      setStatus("User deleted");
+      toast.success("User deleted.");
       if (editing?._id === user._id) {
         closeModal();
       }
     } catch (err) {
-      const msg = err.response?.data?.message || err.message;
-      setPageError(msg);
-      onError?.(msg);
+      if (err?.isNetworkError || !err?.response) setBackendOnline(false);
+      toast.error(toUiErrorMessage(err));
     }
   }
 
@@ -164,9 +175,6 @@ export default function UserManagement({ onError }) {
       role: user.role || "user",
       password: ""
     });
-    setStatus("");
-    setPageError("");
-    onError?.("");
     setModalOpen(true);
   }
 
@@ -188,17 +196,19 @@ export default function UserManagement({ onError }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+            <div className={`status-indicator ${backendOnline ? "is-ok" : "is-bad"}`}>
+              <span className="status-dot" aria-hidden="true" />
+              <span className="status-text">Backend {backendOnline ? "Online" : "Offline"}</span>
+            </div>
             <div className="admin-user-buttons">
               <button
                 type="button"
                 onClick={() => {
                   setEditing(null);
                   setForm({ name: "", email: "", role: "user", password: "" });
-                  setStatus("");
-                  setPageError("");
-                  onError?.("");
                   setModalOpen(true);
                 }}
+                disabled={!backendOnline}
               >
                 Add User
               </button>
@@ -208,8 +218,6 @@ export default function UserManagement({ onError }) {
             </div>
           </div>
         </div>
-
-        {status && <div className="admin-status">{status}</div>}
 
         <div className="table-wrap">
           <table className="admin-table">
@@ -279,8 +287,6 @@ export default function UserManagement({ onError }) {
                 X
               </button>
             </div>
-
-            {pageError && <div className="admin-form-error">{pageError}</div>}
 
             <form onSubmit={submit} className="form-block">
               <label>

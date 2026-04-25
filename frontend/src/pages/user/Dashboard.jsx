@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { backend } from "../../services/backend";
 import LineChart from "../../components/charts/LineChart";
 import DonutChart from "../../components/charts/DonutChart";
 import Sparkline from "../../components/charts/Sparkline";
+import { isPredictionBumpKey, predictionEvents } from "../../utils/predictionEvents";
+import { toast } from "../../utils/toastBus";
+import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
 
 const DASH = "\u2014";
 const ELLIPSIS = "\u2026";
@@ -23,10 +26,9 @@ export default function UserDashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(false);
-  const [error, setError] = useState("");
+  const liveRef = useRef(false);
 
   async function refresh() {
-    setError("");
     setLoading(true);
     try {
       const next = await backend.getUserDashboardOverview({
@@ -36,7 +38,7 @@ export default function UserDashboardPage() {
       });
       setData(next);
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      toast.error(toUiErrorMessage(err), { dedupeKey: "user-dashboard-refresh" });
     } finally {
       setLoading(false);
     }
@@ -44,6 +46,8 @@ export default function UserDashboardPage() {
 
   useEffect(() => {
     let alive = true;
+    liveRef.current = false;
+    setLive(false);
     refresh();
 
     let es = null;
@@ -53,23 +57,47 @@ export default function UserDashboardPage() {
         alertLimit: 6,
         topLimit: 6,
         intervalMs: 2500,
-        onSnapshot: (snap) => {
-          if (!alive) return;
-          setData(snap);
-          setLive(true);
-        },
-        onError: () => {
-          if (!alive) return;
-          setLive(false);
-        }
-      });
+          onSnapshot: (snap) => {
+            if (!alive) return;
+            setData(snap);
+            setLive(true);
+            liveRef.current = true;
+          },
+          onError: () => {
+            if (!alive) return;
+            setLive(false);
+            liveRef.current = false;
+          }
+        });
     } catch (_err) {
       // stream not available
     }
 
+    function onPredictionCreated() {
+      if (!alive) return;
+      refresh();
+    }
+
+    function onStorage(e) {
+      if (!alive) return;
+      if (isPredictionBumpKey(e?.key)) refresh();
+    }
+
+    window.addEventListener(predictionEvents.created, onPredictionCreated);
+    window.addEventListener("storage", onStorage);
+
+    // Fallback polling when SSE is offline (keeps dashboard updating “live” without errors).
+    const poll = setInterval(() => {
+      if (!alive) return;
+      if (!liveRef.current) refresh();
+    }, 4000);
+
     return () => {
       alive = false;
       es?.close();
+      clearInterval(poll);
+      window.removeEventListener(predictionEvents.created, onPredictionCreated);
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
 
@@ -129,8 +157,6 @@ export default function UserDashboardPage() {
           </button>
         </div>
       </div>
-
-      {error && <div className="banner banner-danger">{error}</div>}
 
       <section className="dashboard-kpis">
         {cards.map((card) => (
@@ -292,4 +318,3 @@ export default function UserDashboardPage() {
     </div>
   );
 }
-

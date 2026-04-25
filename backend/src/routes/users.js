@@ -1,5 +1,8 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
@@ -14,10 +17,49 @@ function sanitizeUser(user) {
     name: user.name,
     email: user.email,
     role: user.role,
+    avatarUrl: user.avatarUrl || null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   };
 }
+
+function ensureDir(dir) {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch (_err) {
+    // ignore
+  }
+}
+
+function safeUnlink(filePath) {
+  if (!filePath) return;
+  try {
+    fs.unlinkSync(filePath);
+  } catch (_err) {
+    // ignore
+  }
+}
+
+const uploadsRoot = path.join(__dirname, "..", "..", "uploads");
+const avatarsDir = path.join(uploadsRoot, "avatars");
+ensureDir(avatarsDir);
+
+const avatarUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, avatarsDir),
+    filename: (req, file, cb) => {
+      const rawExt = path.extname(String(file.originalname || "")).toLowerCase();
+      const ext = [".png", ".jpg", ".jpeg", ".webp"].includes(rawExt) ? rawExt : ".png";
+      const id = String(req.user?._id || "user");
+      cb(null, `${id}-${Date.now()}${ext}`);
+    }
+  }),
+  limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
+  fileFilter: (_req, file, cb) => {
+    const ok = String(file.mimetype || "").toLowerCase().startsWith("image/");
+    cb(ok ? null : new Error("Only image uploads are allowed"), ok);
+  }
+});
 
 router.get(
   "/",
@@ -101,6 +143,102 @@ router.get(
   authenticate,
   asyncHandler(async (req, res) => {
     res.json({ user: req.user });
+  })
+);
+
+router.post(
+  "/me/avatar",
+  authenticate,
+  (req, res, next) => {
+    avatarUpload.single("avatar")(req, res, (err) => {
+      if (!err) return next();
+      if (String(err.message || "").toLowerCase().includes("file too large")) {
+        return res.status(413).json({ message: "Image too large. Max 3MB." });
+      }
+      return res.status(400).json({ message: err.message || "Upload failed" });
+    });
+  },
+  asyncHandler(async (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "avatar file is required" });
+
+    const publicUrl = `/uploads/avatars/${req.file.filename}`;
+    const useDb = runtime.dbReady && !runtime.memoryMode;
+
+    if (!useDb) {
+      const index = runtime.users.findIndex((item) => item._id === String(req.user._id));
+      if (index === -1) return res.status(404).json({ message: "User not found" });
+      const prev = runtime.users[index];
+      if (prev?.avatarUrl && String(prev.avatarUrl).startsWith("/uploads/avatars/")) {
+        safeUnlink(path.join(uploadsRoot, String(prev.avatarUrl).replace(/^\/uploads\//, "")));
+      }
+      const updated = { ...prev, avatarUrl: publicUrl, updatedAt: new Date().toISOString() };
+      runtime.users[index] = updated;
+      return res.json({
+        user: {
+          _id: updated._id,
+          name: updated.name,
+          email: updated.email,
+          role: updated.role,
+          avatarUrl: updated.avatarUrl || null,
+          preferences: updated.preferences || undefined
+        }
+      });
+    }
+
+    const existing = await User.findById(req.user._id).select("avatarUrl");
+    if (existing?.avatarUrl && String(existing.avatarUrl).startsWith("/uploads/avatars/")) {
+      safeUnlink(path.join(uploadsRoot, String(existing.avatarUrl).replace(/^\/uploads\//, "")));
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatarUrl: publicUrl, updatedAt: new Date().toISOString() },
+      { new: true }
+    ).select("-passwordHash");
+
+    return res.json({ user });
+  })
+);
+
+router.delete(
+  "/me/avatar",
+  authenticate,
+  asyncHandler(async (req, res) => {
+    const useDb = runtime.dbReady && !runtime.memoryMode;
+
+    if (!useDb) {
+      const index = runtime.users.findIndex((item) => item._id === String(req.user._id));
+      if (index === -1) return res.status(404).json({ message: "User not found" });
+      const prev = runtime.users[index];
+      if (prev?.avatarUrl && String(prev.avatarUrl).startsWith("/uploads/avatars/")) {
+        safeUnlink(path.join(uploadsRoot, String(prev.avatarUrl).replace(/^\/uploads\//, "")));
+      }
+      const updated = { ...prev, avatarUrl: null, updatedAt: new Date().toISOString() };
+      runtime.users[index] = updated;
+      return res.json({
+        user: {
+          _id: updated._id,
+          name: updated.name,
+          email: updated.email,
+          role: updated.role,
+          avatarUrl: null,
+          preferences: updated.preferences || undefined
+        }
+      });
+    }
+
+    const existing = await User.findById(req.user._id).select("avatarUrl");
+    if (existing?.avatarUrl && String(existing.avatarUrl).startsWith("/uploads/avatars/")) {
+      safeUnlink(path.join(uploadsRoot, String(existing.avatarUrl).replace(/^\/uploads\//, "")));
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { avatarUrl: null, updatedAt: new Date().toISOString() },
+      { new: true }
+    ).select("-passwordHash");
+
+    return res.json({ user });
   })
 );
 
@@ -194,6 +332,7 @@ router.patch(
           name: updated.name,
           email: updated.email,
           role: updated.role,
+          avatarUrl: updated.avatarUrl || null,
           preferences: updated.preferences || undefined
         }
       });
