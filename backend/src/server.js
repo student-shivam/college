@@ -34,6 +34,15 @@ app.use(
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
+app.get("/", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "backend",
+    endpoints: ["/health", "/api/*"],
+    startedAt: serverStartedAt
+  });
+});
+
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
