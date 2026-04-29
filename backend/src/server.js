@@ -21,9 +21,27 @@ dotenv.config({ path: path.join(__dirname, "..", ".env") });
 const app = express();
 const serverStartedAt = new Date().toISOString();
 
+function readAllowedOrigins() {
+  const raw =
+    process.env.FRONTEND_URLS ||
+    process.env.FRONTEND_URL ||
+    "";
+
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+const allowedOrigins = readAllowedOrigins();
 const corsOrigin =
-  process.env.NODE_ENV === "production" && process.env.FRONTEND_URL
-    ? process.env.FRONTEND_URL
+  process.env.NODE_ENV === "production" && allowedOrigins.length > 0
+    ? (origin, cb) => {
+        // Allow same-origin / non-browser requests (no Origin header)
+        if (!origin) return cb(null, true);
+        if (allowedOrigins.includes(origin)) return cb(null, true);
+        return cb(new Error(`CORS blocked for origin: ${origin}`), false);
+      }
     : "*";
 
 app.use(
