@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: predictive-maintenance-ml-api
+    env: python
+    rootDir: ml-api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
+    envVars:
+      - key: MONGO_URI
+        sync: false
+

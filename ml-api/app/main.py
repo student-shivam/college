@@ -537,14 +537,17 @@ if HAVE_FASTAPI:
 
 
 def run():
-    host = os.getenv("HOST", "127.0.0.1")
+    # 0.0.0.0 is the safest default for containers / PaaS deployments.
+    # You can still override via HOST env var for local-only binding.
+    host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8000"))
 
     if HAVE_FASTAPI:
         try:
             import uvicorn  
 
-            uvicorn.run("app.main:app", host=host, port=port, reload=False)
+            # Pass the app object directly to avoid import-path issues in prod.
+            uvicorn.run(app, host=host, port=port, reload=False)
             return
         except Exception:
             pass
