@@ -502,6 +502,15 @@ if HAVE_FASTAPI:
     app = FastAPI(title="Predictive Maintenance ML API")
 
 
+    @app.get("/")
+    def root():
+        return {
+            "service": "ml-api",
+            "status": "ok",
+            "endpoints": ["/health", "/model/info", "/predict", "/train"],
+        }
+
+
     @app.get("/health")
     def health():
         return {"status": "ok", "service": "ml-api", "model_version": state.meta.get("model_version")}
@@ -582,6 +591,17 @@ def run():
 
         def do_GET(self):  # noqa: N802
             path = urlparse(self.path).path
+            if path == "/":
+                return send_json(
+                    self,
+                    200,
+                    {
+                        "service": "ml-api",
+                        "status": "ok",
+                        "endpoints": ["/health", "/model/info", "/predict", "/train"],
+                        "mode": "stdlib",
+                    },
+                )
             if path == "/health":
                 return send_json(
                     self,
