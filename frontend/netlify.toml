@@ -10,7 +10,7 @@
 # Replace the `to` URL with your deployed backend base URL.
 [[redirects]]
   from = "/api/*"
-  to = "https://<your-backend>.onrender.com/api/:splat"
+  to = "https://college-1-xt2h.onrender.com/api/:splat"
   status = 200
   force = true
 
