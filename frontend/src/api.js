@@ -2,13 +2,22 @@ import axios from "axios";
 
 function resolveBaseUrl() {
   const configured = import.meta.env.VITE_API_BASE_URL;
-  const fallback = "http://127.0.0.1:5000/api";
+  const localFallback = "http://127.0.0.1:5000/api";
 
   if (!configured) {
     if (typeof window !== "undefined" && window.location?.hostname) {
-      return `http://${window.location.hostname}:5000/api`;
+      const host = window.location.hostname;
+
+      // Local dev default: backend on :5000.
+      if (host === "localhost" || host === "127.0.0.1") {
+        return `http://${host}:5000/api`;
+      }
+
+      // Production default: use same-origin `/api` (e.g. via Netlify proxy redirect).
+      return "/api";
     }
-    return fallback;
+
+    return localFallback;
   }
 
   // If frontend is opened via LAN IP but env still points to localhost,

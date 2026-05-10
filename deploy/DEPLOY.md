@@ -62,6 +62,12 @@ Environment variables (Netlify → Site configuration → Environment variables)
 
 - `VITE_API_BASE_URL` = `BACKEND_PUBLIC_URL/api` (example: `https://<your-backend>.onrender.com/api`)
 
+Alternative (no env var): Netlify proxy
+
+- Add a proxy redirect in `frontend/netlify.toml`:
+  - `from = "/api/*"`
+  - `to = "https://<your-backend>.onrender.com/api/:splat"`
+
 After deploy, copy the Netlify URL and set it back in Render (backend env):
 
 - `FRONTEND_URL` = `https://<your-site>.netlify.app`
@@ -72,4 +78,3 @@ After deploy, copy the Netlify URL and set it back in Render (backend env):
 - ML health: `GET https://<your-ml-service>.onrender.com/health`
 
 If predictions fail because ML is down, backend auto-fallbacks to a local predictor.
-
