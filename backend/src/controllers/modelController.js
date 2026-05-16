@@ -5,7 +5,8 @@ const ModelMeta = require("../models/ModelMeta");
 const { runtime, newId } = require("../state/runtime");
 
 function mlApiBaseUrl() {
-  return process.env.ML_API_URL || "http://127.0.0.1:8000";
+  const url = process.env.ML_API_URL || "http://127.0.0.1:8000";
+  return url.replace(/\/+$/, "");
 }
 
 function toResponse(meta) {

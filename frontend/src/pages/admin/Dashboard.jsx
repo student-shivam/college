@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import TechBackground from "../../components/TechBackground";
 import { backend } from "../../services/backend";
 import LineChart from "../../components/charts/LineChart";
 import DonutChart from "../../components/charts/DonutChart";
@@ -150,9 +152,28 @@ export default function AdminDashboardPage() {
     ].filter((s) => s.value > 0);
   }, [data]);
 
+  const pageVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    show: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="page dashboard-page">
-      <div className="page-head">
+    <motion.div className="page dashboard-page" variants={pageVariants} initial="hidden" animate="show" style={{ position: "relative" }}>
+      <TechBackground />
+      <motion.div className="page-head" variants={itemVariants} style={{ position: "relative", zIndex: 1 }}>
         <div>
           <div className="page-kicker">ADMIN</div>
           <h1>Dashboard</h1>
@@ -168,11 +189,12 @@ export default function AdminDashboardPage() {
             {loading ? "Loading..." : "Refresh"}
           </button>
         </div>
-      </div>
+      </motion.div>
 
-      <section className="dashboard-kpis">
+      <motion.section className="dashboard-kpis" variants={itemVariants} style={{ position: "relative", zIndex: 1 }}>
         {cards.map((card) => (
-          <article
+          <motion.article
+            variants={cardVariants}
             key={card.label}
             className={["dash-kpi", `tone-${card.tone || "base"}`].join(" ")}
           >
@@ -192,11 +214,11 @@ export default function AdminDashboardPage() {
               />
             </div>
             <div className="kpi-value">{loading && !data ? ELLIPSIS : card.value}</div>
-          </article>
+          </motion.article>
         ))}
-      </section>
+      </motion.section>
 
-      <section className="dashboard-mid">
+      <motion.section className="dashboard-mid" variants={itemVariants} style={{ position: "relative", zIndex: 1 }}>
         <div className="panel">
           <div className="panel-head">
             <div>
@@ -245,9 +267,9 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="dashboard-bottom">
+      <motion.section className="dashboard-bottom" variants={itemVariants} style={{ position: "relative", zIndex: 1 }}>
         <div className="panel">
           <div className="panel-head">
             <div>
@@ -326,7 +348,9 @@ export default function AdminDashboardPage() {
             </table>
           </div>
         </div>
-      </section>
-    </div>
+      </motion.section>
+
+      <div className="page-footer">© {new Date().getFullYear()} Developed by Ravindra</div>
+    </motion.div>
   );
 }

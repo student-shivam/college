@@ -1,6 +1,6 @@
 {
-  "model_version": "fallback-20260422184659",
-  "trained_at": "2026-04-22T18:46:59.873672Z",
+  "model_version": "fallback-20260513124233",
+  "trained_at": "2026-05-13T12:42:33.161015Z",
   "features": [
     "temperature",
     "vibration",
@@ -17,5 +17,5 @@
   "accuracy": null,
   "loss": null,
   "samples": null,
-  "mode": "train"
+  "mode": "update"
 }

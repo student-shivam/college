@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { backend } from "../../services/backend";
 import { useAuth } from "../../auth/AuthProvider";
-import { playRiskSound } from "../../utils/sound";
+import { playRiskSound, unlockAudio } from "../../utils/sound";
 import { toast } from "../../utils/toastBus";
 import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
 import { broadcastPredictionCreated } from "../../utils/predictionEvents";
@@ -151,6 +152,7 @@ export default function UserPredictionsPage() {
 
   async function predict(e) {
     e.preventDefault();
+    unlockAudio();
     setPredictLoading(true);
     const ok = backendOnline || (await checkBackend());
     if (!ok) {
@@ -232,8 +234,42 @@ export default function UserPredictionsPage() {
     }
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0, scale: 0.95, y: 20 },
+    show: {
+      opacity: 1, scale: 1, y: 0,
+      transition: { type: "spring", stiffness: 300, damping: 24, staggerChildren: 0.1 }
+    },
+    exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
+  const pulseVariants = {
+    pulse: {
+      scale: [1, 1.05, 1],
+      boxShadow: ["0px 0px 0px rgba(0,0,0,0)", "0px 0px 15px rgba(255, 74, 91, 0.5)", "0px 0px 0px rgba(0,0,0,0)"],
+      transition: { duration: 1.5, repeat: Infinity }
+    }
+  };
+
   return (
-    <div className="page">
+    <div
+      className="page"
+      style={{
+        backgroundImage: "linear-gradient(rgba(6, 10, 22, 0.85), rgba(6, 10, 22, 0.95)), url('/machine_bg.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
+        borderRadius: "14px",
+        padding: "24px",
+        margin: "-10px",
+        minHeight: "calc(100vh - 80px)"
+      }}
+    >
       <div className="page-head">
         <div>
           <div className="page-kicker">USER</div>
@@ -257,8 +293,8 @@ export default function UserPredictionsPage() {
         </div>
       </div>
 
-      <div className="predictions-grid">
-        <section className="panel">
+      <motion.div className="predictions-grid" variants={containerVariants} initial="hidden" animate="show">
+        <motion.section className="panel" variants={itemVariants} style={{ background: "rgba(10, 18, 40, 0.65)", backdropFilter: "blur(12px)" }}>
           <div className="panel-head">
             <div>
               <div className="panel-title">Run Prediction</div>
@@ -351,27 +387,45 @@ export default function UserPredictionsPage() {
               </div>
             </div>
           </form>
-        </section>
+        </motion.section>
 
-        <section className="panel">
+        <motion.section className="panel" variants={itemVariants} style={{ background: "rgba(10, 18, 40, 0.65)", backdropFilter: "blur(12px)" }}>
           <div className="panel-head">
             <div className="panel-title">Latest Prediction</div>
             <div className="panel-sub">Live result</div>
           </div>
-          {latestPrediction ? (
-            <div className="pred-result">
-              <div className="pred-result-head">
-                <div className={riskBadgeClass}>{formatRiskLabel(latestPrediction.riskLevel)}</div>
+          <AnimatePresence mode="wait">
+            {latestPrediction ? (
+              <motion.div
+                key={latestPrediction._id}
+                className="pred-result"
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                exit="exit"
+              >
+                <motion.div className="pred-result-head" variants={itemVariants}>
+                  <motion.div
+                    className={riskBadgeClass}
+                    variants={latestRiskKey === "critical" || latestRiskKey === "high" ? pulseVariants : undefined}
+                    animate={latestRiskKey === "critical" || latestRiskKey === "high" ? "pulse" : undefined}
+                  >
+                    {formatRiskLabel(latestPrediction.riskLevel)}
+                  </motion.div>
                 <div className="pred-meta muted">
                   {latestPrediction.predictedAt
                     ? new Date(latestPrediction.predictedAt).toLocaleString()
                     : DASH}
                 </div>
-              </div>
+                </motion.div>
 
-              {latestRiskKey && <div className="pred-status-sub">{riskSummary(latestRiskKey)}</div>}
+                {latestRiskKey && (
+                  <motion.div className="pred-status-sub" variants={itemVariants}>
+                    {riskSummary(latestRiskKey)}
+                  </motion.div>
+                )}
 
-              <div className="pred-prob">
+                <motion.div className="pred-prob" variants={itemVariants}>
                 <div className="pred-prob-top">
                   <div className="pred-prob-label">Failure Probability</div>
                   <div className="pred-prob-value">
@@ -382,10 +436,10 @@ export default function UserPredictionsPage() {
                 </div>
                 <div className="pred-prob-track" aria-hidden="true">
                   <div className="pred-prob-fill" style={{ width: `${probabilityPct ?? 0}%` }} />
-                </div>
-              </div>
+                  </div>
+                </motion.div>
 
-              <div className="pred-kv">
+                <motion.div className="pred-kv" variants={itemVariants}>
                 <div className="pred-kv-item">
                   <div className="pred-kv-k">ETA</div>
                   <div className="pred-kv-v">
@@ -395,16 +449,16 @@ export default function UserPredictionsPage() {
                 <div className="pred-kv-item">
                   <div className="pred-kv-k">Model</div>
                   <div className="pred-kv-v">{latestPrediction.modelVersion || DASH}</div>
-                </div>
-              </div>
+                  </div>
+                </motion.div>
 
-              <div className="pred-reco">
+                <motion.div className="pred-reco" variants={itemVariants}>
                 <div className="pred-reco-k">Recommendation</div>
                 <div className="pred-reco-v">{latestPrediction.recommendation || DASH}</div>
-              </div>
+                </motion.div>
 
-              {Array.isArray(latestPrediction.signals) && latestPrediction.signals.length > 0 && (
-                <div className="pred-chip-block">
+                {Array.isArray(latestPrediction.signals) && latestPrediction.signals.length > 0 && (
+                  <motion.div className="pred-chip-block" variants={itemVariants}>
                   <div className="pred-chip-k">Signals</div>
                   <div className="chips">
                     {latestPrediction.signals.map((s) => (
@@ -412,13 +466,13 @@ export default function UserPredictionsPage() {
                         {s}
                       </span>
                     ))}
-                  </div>
-                </div>
-              )}
+                    </div>
+                  </motion.div>
+                )}
 
-              {Array.isArray(latestPrediction.nextSteps) &&
-                latestPrediction.nextSteps.length > 0 && (
-                  <div className="pred-chip-block">
+                {Array.isArray(latestPrediction.nextSteps) &&
+                  latestPrediction.nextSteps.length > 0 && (
+                    <motion.div className="pred-chip-block" variants={itemVariants}>
                     <div className="pred-chip-k">Next steps</div>
                     <div className="chips">
                       {latestPrediction.nextSteps.map((s) => (
@@ -426,17 +480,26 @@ export default function UserPredictionsPage() {
                           {s}
                         </span>
                       ))}
-                    </div>
-                  </div>
-                )}
-            </div>
-          ) : (
-            <p className="muted">No prediction generated yet.</p>
-          )}
-        </section>
-      </div>
+                      </div>
+                    </motion.div>
+                  )}
+              </motion.div>
+            ) : (
+              <motion.p
+                key="empty"
+                className="muted"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                No prediction generated yet.
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </motion.section>
+      </motion.div>
 
-      <section className="panel">
+      <motion.section className="panel" variants={itemVariants} initial="hidden" animate="show" style={{ background: "rgba(10, 18, 40, 0.65)", backdropFilter: "blur(12px)", marginTop: "16px" }}>
         <div className="panel-head">
           <div className="panel-title">Recent Predictions</div>
           <div className="panel-sub">{loading ? "Loading..." : `${filtered.length} records`}</div>
@@ -500,7 +563,7 @@ export default function UserPredictionsPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import GearBackground from "../../components/GearBackground";
 import { backend } from "../../services/backend";
 import { useAuth } from "../../auth/AuthProvider";
 import { toast } from "../../utils/toastBus";
@@ -132,9 +134,23 @@ export default function UserSettingsPage() {
     }
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="page">
-      <div className="page-head">
+    <div className="page" style={{ position: "relative" }}>
+      <GearBackground />
+      <div className="page-head" style={{ position: "relative", zIndex: 1 }}>
         <div>
           <div className="page-kicker">USER</div>
           <h1>Settings</h1>
@@ -147,8 +163,8 @@ export default function UserSettingsPage() {
         </div>
       </div>
 
-      <div className="settings-grid">
-        <section className="panel">
+      <motion.div className="settings-grid" variants={containerVariants} initial="hidden" animate="show" style={{ position: "relative", zIndex: 1 }}>
+        <motion.section className="panel" variants={itemVariants}>
           <div className="panel-head">
             <div>
               <div className="panel-title">Profile</div>
@@ -259,9 +275,9 @@ export default function UserSettingsPage() {
               </button>
             </div>
           </form>
-        </section>
+        </motion.section>
 
-        <section className="panel">
+        <motion.section className="panel" variants={itemVariants}>
           <div className="panel-head">
             <div>
               <div className="panel-title">Security</div>
@@ -312,8 +328,8 @@ export default function UserSettingsPage() {
               </div>
             </div>
           </form>
-        </section>
-      </div>
+        </motion.section>
+      </motion.div>
     </div>
   );
 }

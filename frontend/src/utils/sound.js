@@ -1,4 +1,4 @@
-let currentAudio = null;
+let currentAudio = typeof window !== "undefined" && typeof Audio !== "undefined" ? new Audio() : null;
 
 function joinBaseUrl(pathname) {
   const base = String(import.meta.env.BASE_URL || "/");
@@ -22,23 +22,34 @@ export function soundFileForRiskLevel(riskLevel) {
   return null;
 }
 
+export function unlockAudio() {
+  if (!currentAudio) return;
+  // Play a tiny silent sound synchronously to unlock the audio element for future async plays
+  currentAudio.volume = 0;
+  currentAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+  currentAudio.play().catch(() => {});
+}
+
 export function playPublicSound(filename, { volume = 1, interrupt = true } = {}) {
   if (typeof window === "undefined") return false;
-  if (typeof Audio === "undefined") return false;
+  if (!currentAudio) return false;
   if (!filename) return false;
 
   const src = joinBaseUrl(filename);
 
   try {
-    if (interrupt && currentAudio) {
+    if (interrupt) {
       currentAudio.pause();
-      currentAudio.currentTime = 0;
     }
 
-    currentAudio = new Audio(src);
+    currentAudio.src = src;
+    currentAudio.currentTime = 0;
     currentAudio.volume = Math.min(Math.max(Number(volume) || 1, 0), 1);
     // Don't throw if autoplay is blocked; just no-op.
-    currentAudio.play().catch(() => {});
+    const playPromise = currentAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {});
+    }
     return true;
   } catch (_err) {
     return false;

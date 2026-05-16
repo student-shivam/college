@@ -423,7 +423,7 @@ def train_payload(payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
             return 400, {"message": "Not enough training data."}
 
         X_train, X_test, y_train, y_test = split_train_test(X, y)
-        model = RandomForestClassifier(n_estimators=160, random_state=42, n_jobs=-1)
+        model = RandomForestClassifier(n_estimators=50, random_state=42)
         model.fit(X_train, y_train)
 
         y_pred = model.predict(X_test)
@@ -458,7 +458,7 @@ def train_payload(payload: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
         return 400, {"message": "Not enough training data."}
 
     X_train, X_test, y_train, y_test = split_train_test(X, y)
-    model = RandomForestClassifier(n_estimators=160, random_state=42, n_jobs=-1)
+    model = RandomForestClassifier(n_estimators=50, random_state=42)
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
@@ -549,7 +549,7 @@ def run():
     # 0.0.0.0 is the safest default for containers / PaaS deployments.
     # You can still override via HOST env var for local-only binding.
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
+    port = int(os.getenv("PORT", "8085"))
 
     if HAVE_FASTAPI:
         try:

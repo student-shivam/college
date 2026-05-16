@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import api from "../api";
 import { backend } from "../services/backend";
 import { toast } from "../utils/toastBus";
@@ -178,8 +179,21 @@ export default function UserManagement() {
     setModalOpen(true);
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.05 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <section className="admin-user-page">
+    <motion.section className="admin-user-page" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
       <article className="admin-card">
         <div className="admin-user-toolbar">
           <div className="admin-user-title">
@@ -230,9 +244,9 @@ export default function UserManagement() {
                 <th style={{ width: 220 }}>Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <motion.tbody variants={containerVariants} initial="hidden" animate="show">
               {filtered.map((u) => (
-                <tr key={u._id}>
+                <motion.tr key={u._id} variants={itemVariants}>
                   <td>{u.name}</td>
                   <td>{u.email}</td>
                   <td>
@@ -254,16 +268,16 @@ export default function UserManagement() {
                       </button>
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               ))}
               {filtered.length === 0 && (
-                <tr>
+                <motion.tr variants={itemVariants}>
                   <td colSpan={5} className="admin-muted">
                     No users found.
                   </td>
-                </tr>
+                </motion.tr>
               )}
-            </tbody>
+            </motion.tbody>
           </table>
         </div>
       </article>
@@ -344,6 +358,6 @@ export default function UserManagement() {
           </div>
         </div>
       )}
-    </section>
+    </motion.section>
   );
 }

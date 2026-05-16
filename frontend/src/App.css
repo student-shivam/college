@@ -2,7 +2,11 @@
   --bg: #f4f6fb;
   --card: #ffffff;
   --text: #152033;
-  --primary: #0057d9;
+  --primary: #6d28d9;
+  --accent-a: #7c3aed;
+  --accent-b: #06b6d4;
+  --accent-c: #f97316;
+  --primary-shadow: rgba(124, 58, 237, 0.32);
   --danger: #b00020;
   --line: #d6ddea;
   --sidebar-width: clamp(240px, 20vw, 320px);
@@ -17,11 +21,55 @@
   box-sizing: border-box;
 }
 
+@keyframes pmGradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes pmShineSweep {
+  0% {
+    transform: translateX(-140%) skewX(-18deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  60% {
+    opacity: 0.2;
+  }
+  100% {
+    transform: translateX(140%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 body {
   margin: 0;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(180deg, #edf2ff 0%, var(--bg) 55%);
   color: var(--text);
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .app-loading {
@@ -699,10 +747,11 @@ button {
 button {
   cursor: pointer;
   border: 1px solid rgba(0, 0, 0, 0.12);
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+  background-size: 200% 200%;
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 10px 22px rgba(0, 87, 217, 0.22);
+  box-shadow: 0 10px 22px var(--primary-shadow);
   transition:
     transform 120ms ease,
     filter 160ms ease,
@@ -713,17 +762,18 @@ button {
 
 button:hover {
   filter: brightness(1.04);
-  box-shadow: 0 12px 26px rgba(0, 87, 217, 0.28);
+  box-shadow: 0 14px 30px rgba(6, 182, 212, 0.22), 0 14px 36px rgba(124, 58, 237, 0.22);
+  animation: pmGradientShift 6s ease infinite;
 }
 
 button:active {
   transform: translateY(1px);
   filter: brightness(0.98);
-  box-shadow: 0 8px 18px rgba(0, 87, 217, 0.22);
+  box-shadow: 0 8px 18px var(--primary-shadow);
 }
 
 button:focus-visible {
-  outline: 3px solid rgba(0, 87, 217, 0.35);
+  outline: 3px solid rgba(124, 58, 237, 0.34);
   outline-offset: 2px;
 }
 
@@ -751,8 +801,10 @@ button:focus-visible {
   padding: 14px 16px;
   font-size: 18px;
   border-radius: 14px;
-  background: linear-gradient(90deg, #4758ea, #7a35df);
-  box-shadow: 0 10px 24px rgba(79, 81, 239, 0.36);
+  background: linear-gradient(135deg, var(--accent-a), var(--accent-b), var(--accent-c));
+  background-size: 220% 220%;
+  animation: pmGradientShift 7s ease infinite;
+  box-shadow: 0 14px 34px rgba(124, 58, 237, 0.28), 0 14px 34px rgba(6, 182, 212, 0.18);
 }
 
 button[disabled] {
@@ -1701,6 +1753,7 @@ td {
 /* --- SaaS Admin Layout (React Router) --- */
 
 .saas-shell {
+  position: relative;
   --saas-nav-h: 72px;
   --saas-sidebar-w: 292px;
   --saas-sidebar-w-collapsed: 92px;
@@ -1708,6 +1761,7 @@ td {
   --saas-surface-2: rgba(6, 10, 22, 0.5);
   --saas-line: rgba(255, 255, 255, 0.08);
   --saas-border: rgba(255, 255, 255, 0.12);
+  --saas-shadow: rgba(0, 0, 0, 0.35);
   --saas-text: rgba(235, 241, 255, 0.92);
   --saas-muted: rgba(235, 241, 255, 0.62);
   --saas-muted-2: rgba(235, 241, 255, 0.72);
@@ -1718,6 +1772,26 @@ td {
     radial-gradient(circle at 85% 100%, rgba(122, 53, 223, 0.18), transparent 50%),
     linear-gradient(180deg, #050816, #060a16);
   color: var(--saas-text);
+  overflow-x: clip;
+}
+
+.saas-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(900px 380px at 10% 10%, rgba(6, 182, 212, 0.14), transparent 55%),
+    radial-gradient(860px 360px at 90% 0%, rgba(124, 58, 237, 0.16), transparent 54%),
+    radial-gradient(780px 340px at 70% 92%, rgba(249, 115, 22, 0.08), transparent 55%);
+  opacity: 0.95;
+  transform: translateZ(0);
+  animation: pmGradientShift 12s ease-in-out infinite;
+}
+
+.saas-shell > * {
+  position: relative;
+  z-index: 1;
 }
 
 .saas-shell.sidebar-collapsed {
@@ -1729,6 +1803,7 @@ body.theme-light .saas-shell {
   --saas-surface-2: rgba(255, 255, 255, 0.9);
   --saas-line: rgba(20, 40, 90, 0.12);
   --saas-border: rgba(20, 40, 90, 0.14);
+  --saas-shadow: rgba(15, 29, 58, 0.12);
   --saas-text: rgba(10, 16, 30, 0.92);
   --saas-muted: rgba(10, 16, 30, 0.56);
   --saas-muted-2: rgba(10, 16, 30, 0.62);
@@ -1809,7 +1884,9 @@ body.theme-light .saas-collapse-btn {
   width: 46px;
   height: 46px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #2a8cff, #7a35df);
+  background: linear-gradient(135deg, var(--accent-a), var(--accent-b), var(--accent-c));
+  background-size: 220% 220%;
+  animation: pmGradientShift 10s ease infinite;
   display: grid;
   place-items: center;
   font-weight: 900;
@@ -1877,13 +1954,26 @@ body.theme-light .saas-nav-item:hover {
 }
 
 .saas-nav-item.active {
-  background: rgba(71, 88, 234, 0.22);
-  border-color: rgba(122, 53, 223, 0.45);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.24), rgba(6, 182, 212, 0.16));
+  border-color: rgba(124, 58, 237, 0.42);
+  box-shadow: 0 18px 38px rgba(124, 58, 237, 0.16);
 }
 
 body.theme-light .saas-nav-item.active {
-  background: rgba(71, 88, 234, 0.16);
-  border-color: rgba(122, 53, 223, 0.28);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.14), rgba(6, 182, 212, 0.1));
+  border-color: rgba(124, 58, 237, 0.22);
+  box-shadow: 0 18px 38px rgba(124, 58, 237, 0.1);
+}
+
+.page-footer {
+  margin-top: 18px;
+  padding: 10px 4px 4px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--saas-muted);
 }
 
 .saas-shell.sidebar-collapsed .saas-nav-item {
@@ -1968,14 +2058,16 @@ body.theme-light .saas-foot-note {
 }
 
 .saas-main {
-  margin-left: 292px;
+  margin-left: var(--saas-sidebar-w);
+  width: calc(100% - var(--saas-sidebar-w));
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
 .saas-shell.sidebar-collapsed .saas-main {
-  margin-left: 92px;
+  margin-left: var(--saas-sidebar-w);
+  width: calc(100% - var(--saas-sidebar-w));
 }
 
 .saas-topbar {
@@ -2012,6 +2104,12 @@ body.theme-light .saas-topbar {
 .saas-topbar-title {
   font-weight: 900;
   letter-spacing: -0.2px;
+}
+
+.saas-topbar-title-short {
+  display: none;
+  font-weight: 950;
+  letter-spacing: -0.4px;
 }
 
 .saas-topbar-right {
@@ -2177,8 +2275,25 @@ body.theme-light .saas-menu-item {
     display: grid;
   }
 
+  .saas-topbar-title {
+    max-width: 44vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .saas-collapse-btn {
     display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .saas-topbar-title {
+    display: none;
+  }
+
+  .saas-topbar-title-short {
+    display: block;
   }
 }
 
@@ -2251,6 +2366,23 @@ body.theme-light .saas-menu-item {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
+}
+
+@media (max-width: 560px) {
+  .saas-content {
+    padding: 14px;
+  }
+
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 420px) {
+  .saas-content {
+    padding: 10px;
+  }
 }
 
 .saas-backdrop {
@@ -2425,19 +2557,53 @@ body.theme-light .saas-shell .status-text {
 }
 
 .panel {
-  background: rgba(10, 18, 40, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+  background: var(--saas-surface);
+  border: 1px solid var(--saas-line);
   border-radius: 18px;
   padding: 18px;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 18px 42px var(--saas-shadow);
   backdrop-filter: blur(10px);
   margin-bottom: 16px;
+  transition: transform 180ms ease, box-shadow 220ms ease, border-color 220ms ease;
 }
 
 body.theme-light .saas-shell .panel {
-  background: rgba(255, 255, 255, 0.78);
-  border-color: rgba(20, 40, 90, 0.12);
-  box-shadow: 0 18px 42px rgba(18, 25, 55, 0.12);
+  background: var(--saas-surface);
+  border-color: var(--saas-line);
+  box-shadow: 0 18px 42px var(--saas-shadow);
+}
+
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(6, 182, 212, 0.18) 30%,
+    rgba(124, 58, 237, 0.22) 50%,
+    transparent 70%
+  );
+  width: 42%;
+  left: -50%;
+  top: -25%;
+  height: 150%;
+  filter: blur(0.2px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.panel:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 22px 54px var(--saas-shadow);
+  border-color: var(--saas-border);
+}
+
+.panel:hover::before {
+  opacity: 1;
+  animation: pmShineSweep 1.9s ease-out 1;
 }
 
 .panel-head {
@@ -2454,12 +2620,12 @@ body.theme-light .saas-shell .panel {
 }
 
 .panel-sub {
-  color: rgba(235, 241, 255, 0.62);
+  color: var(--saas-muted);
   font-weight: 700;
 }
 
 body.theme-light .saas-shell .panel-sub {
-  color: rgba(10, 16, 30, 0.56);
+  color: var(--saas-muted);
 }
 
 .risk-row {
@@ -2474,9 +2640,15 @@ body.theme-light .saas-shell .panel-sub {
   gap: 10px;
   padding: 10px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--saas-surface-2);
+  border: 1px solid var(--saas-line);
   font-weight: 900;
+  transition: transform 160ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.risk-pill:hover {
+  transform: translateY(-1px);
+  border-color: var(--saas-border);
 }
 
 .risk-dot {
@@ -2977,6 +3149,7 @@ body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
 @media (max-width: 860px) {
   .saas-main {
     margin-left: 0;
+    width: 100%;
   }
 
   .saas-topbar-fixed {
@@ -3012,14 +3185,37 @@ body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
 .dash-kpi {
   border-radius: 18px;
   padding: 16px 18px;
-  background: rgba(10, 18, 40, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+  background: var(--saas-surface);
+  border: 1px solid var(--saas-line);
+  box-shadow: 0 18px 42px var(--saas-shadow);
   backdrop-filter: blur(10px);
   min-height: 112px;
   display: grid;
   align-content: start;
   gap: 8px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 180ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.dash-kpi::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      700px 220px at 16% 10%,
+      rgba(6, 182, 212, 0.12),
+      transparent 55%
+    ),
+    radial-gradient(680px 240px at 86% 0%, rgba(124, 58, 237, 0.14), transparent 52%);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.dash-kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 26px 66px var(--saas-shadow);
+  border-color: var(--saas-border);
 }
 
 .dash-kpi-top {
@@ -3072,7 +3268,7 @@ body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: rgba(235, 241, 255, 0.72);
+  color: var(--saas-muted-2);
   font-weight: 800;
   font-size: 13px;
 }
@@ -3103,8 +3299,8 @@ body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
   align-items: center;
   padding: 10px 12px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--saas-surface-2);
+  border: 1px solid var(--saas-line);
 }
 
 .dash-donut-name {
@@ -3112,7 +3308,7 @@ body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
 }
 
 .dash-donut-value {
-  color: rgba(235, 241, 255, 0.72);
+  color: var(--saas-muted-2);
   font-weight: 900;
 }
 
@@ -3128,8 +3324,8 @@ body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
   gap: 12px;
   padding: 12px 12px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--saas-surface-2);
+  border: 1px solid var(--saas-line);
 }
 
 .dash-alert-left {
@@ -3144,7 +3340,7 @@ body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
 
 .dash-alert-sub {
   margin-top: 3px;
-  color: rgba(235, 241, 255, 0.62);
+  color: var(--saas-muted);
   font-weight: 700;
   font-size: 13px;
 }
@@ -3160,9 +3356,9 @@ body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 11px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(235, 241, 255, 0.78);
+  border: 1px solid var(--saas-border);
+  background: var(--saas-surface-2);
+  color: var(--saas-muted-2);
 }
 
 .sev-low {
@@ -3193,9 +3389,9 @@ body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
   border-radius: 999px;
   font-weight: 900;
   font-size: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(235, 241, 255, 0.86);
+  border: 1px solid var(--saas-border);
+  background: var(--saas-surface-2);
+  color: var(--saas-text);
 }
 
 .status-healthy {
@@ -3229,6 +3425,12 @@ body.theme-light .saas-shell .model-status-pill[data-status="Failed"] {
   }
 
   .dash-donut {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard-kpis {
     grid-template-columns: 1fr;
   }
 }

@@ -129,9 +129,7 @@ export const backend = {
   uploadMyAvatar: async (file) => {
     const form = new FormData();
     form.append("avatar", file);
-    const res = await api.post("/users/me/avatar", form, {
-      headers: { "Content-Type": "multipart/form-data" }
-    });
+    const res = await api.post("/users/me/avatar", form);
     return res.data;
   },
   removeMyAvatar: async () => (await api.delete("/users/me/avatar")).data,
@@ -206,9 +204,7 @@ export const backend = {
   uploadSensorData: async (file) => {
     const form = new FormData();
     form.append("file", file);
-    const res = await api.post("/data/upload", form, {
-      headers: { "Content-Type": "multipart/form-data" }
-    });
+    const res = await api.post("/data/upload", form);
     return res.data;
   },
   listSensorData: async ({ page = 1, limit = 20, machineId = "" } = {}) => {

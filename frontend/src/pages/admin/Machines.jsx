@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import TechBackground from "../../components/TechBackground";
 import { backend } from "../../services/backend";
 import { toast } from "../../utils/toastBus";
 import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
@@ -71,9 +73,23 @@ export default function AdminMachinesPage() {
     }
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.05 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="page">
-      <div className="page-head">
+    <div className="page" style={{ position: "relative" }}>
+      <TechBackground />
+      <div className="page-head" style={{ position: "relative", zIndex: 1 }}>
         <div>
           <div className="page-kicker">ADMIN</div>
           <h1>Machine Management</h1>
@@ -81,7 +97,7 @@ export default function AdminMachinesPage() {
         </div>
       </div>
 
-      <article className="admin-card">
+      <motion.article className="admin-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ position: "relative", zIndex: 1 }}>
         <div className="admin-user-toolbar">
           <div className="admin-user-title">
             <h2>Machines</h2>
@@ -124,9 +140,9 @@ export default function AdminMachinesPage() {
                 <th>Created</th>
               </tr>
             </thead>
-            <tbody>
+            <motion.tbody variants={containerVariants} initial="hidden" animate="show">
               {filtered.map((m) => (
-                <tr key={m._id}>
+                <motion.tr key={m._id} variants={itemVariants}>
                   <td>{m.name}</td>
                   <td>{m.location || "-"}</td>
                   <td>{m.modelNumber || "-"}</td>
@@ -134,19 +150,19 @@ export default function AdminMachinesPage() {
                     {m.installedAt ? new Date(m.installedAt).toLocaleDateString() : "-"}
                   </td>
                   <td>{m.createdAt ? new Date(m.createdAt).toLocaleDateString() : "-"}</td>
-                </tr>
+                </motion.tr>
               ))}
               {filtered.length === 0 && (
-                <tr>
+                <motion.tr variants={itemVariants}>
                   <td colSpan={5} className="admin-muted">
                     No machines found.
                   </td>
-                </tr>
+                </motion.tr>
               )}
-            </tbody>
+            </motion.tbody>
           </table>
         </div>
-      </article>
+      </motion.article>
 
       {modalOpen && (
         <div

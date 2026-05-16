@@ -57,7 +57,19 @@ export default function Navbar({
   return (
     <header className="saas-topbar saas-topbar-fixed" ref={rootRef}>
       <div className="saas-topbar-left">
+        <button
+          type="button"
+          className="saas-icon-btn saas-mobile-only"
+          onClick={onToggleSidebar}
+          title="Menu"
+          aria-label="Open menu"
+        >
+          <FiMenu />
+        </button>
         <div className="saas-topbar-title">Predictive Maintenance System</div>
+        <div className="saas-topbar-title-short" aria-hidden="true">
+          PM
+        </div>
       </div>
 
       <div className="saas-topbar-right">
@@ -123,18 +135,9 @@ export default function Navbar({
               </span>
               Logout
             </button>
+          
           </div>
         )}
-
-        <button
-          type="button"
-          className="saas-icon-btn saas-mobile-only"
-          onClick={onToggleSidebar}
-          title="Menu"
-          aria-label="Open menu"
-        >
-          <FiMenu />
-        </button>
       </div>
     </header>
   );

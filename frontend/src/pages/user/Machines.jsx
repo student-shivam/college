@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import TechBackground from "../../components/TechBackground";
 import { backend } from "../../services/backend";
 import { toast } from "../../utils/toastBus";
 import { toUiErrorMessage } from "../../utils/toUiErrorMessage";
@@ -35,9 +37,23 @@ export default function UserMachinesPage() {
     });
   }, [machines, query]);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.05 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -10 },
+    show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="page">
-      <div className="page-head">
+    <div className="page" style={{ position: "relative" }}>
+      <TechBackground />
+      <div className="page-head" style={{ position: "relative", zIndex: 1 }}>
         <div>
           <div className="page-kicker">USER</div>
           <h1>Machines</h1>
@@ -56,7 +72,7 @@ export default function UserMachinesPage() {
         </div>
       </div>
 
-      <section className="panel">
+      <motion.section className="panel" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ position: "relative", zIndex: 1 }}>
         <div className="panel-head">
           <div className="panel-title">All Machines</div>
           <div className="panel-sub">{loading ? "Loading..." : `${filtered.length} records`}</div>
@@ -72,26 +88,26 @@ export default function UserMachinesPage() {
                 <th>Installed</th>
               </tr>
             </thead>
-            <tbody>
+            <motion.tbody variants={containerVariants} initial="hidden" animate="show">
               {filtered.map((m) => (
-                <tr key={m._id}>
+                <motion.tr key={m._id} variants={itemVariants}>
                   <td>{m.name}</td>
                   <td>{m.location || "-"}</td>
                   <td>{m.modelNumber || "-"}</td>
                   <td>{m.installedAt ? new Date(m.installedAt).toLocaleDateString() : "-"}</td>
-                </tr>
+                </motion.tr>
               ))}
               {!loading && filtered.length === 0 && (
-                <tr>
+                <motion.tr variants={itemVariants}>
                   <td colSpan={4} className="muted">
                     No machines found.
                   </td>
-                </tr>
+                </motion.tr>
               )}
-            </tbody>
+            </motion.tbody>
           </table>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 }
